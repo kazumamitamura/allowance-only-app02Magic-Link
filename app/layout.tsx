@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// Force dynamic rendering for the entire app (required for Supabase Auth)
+export const dynamic = 'force-dynamic';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
