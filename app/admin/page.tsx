@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* メインメニューカード */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* 手当管理 */}
           <button 
             onClick={() => router.push('/admin/allowances')}
@@ -194,6 +194,25 @@ export default function AdminDashboard() {
             </p>
             <div className="text-xs text-green-200 bg-green-700/30 px-3 py-2 rounded-lg inline-block">
               全管理者
+            </div>
+          </button>
+
+          {/* 手当設定 */}
+          <button 
+            onClick={() => router.push('/admin/settings')}
+            className="bg-gradient-to-br from-purple-500 to-purple-600 p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+          >
+            <div className="flex items-start justify-between mb-6">
+              <div className="text-6xl">⚙️</div>
+            </div>
+            <h3 className="text-3xl font-extrabold text-white mb-3">
+              手当設定
+            </h3>
+            <p className="text-purple-100 text-sm mb-4">
+              手当種別・金額のマスタ管理
+            </p>
+            <div className="text-xs text-purple-200 bg-purple-700/30 px-3 py-2 rounded-lg inline-block">
+              管理者専用
             </div>
           </button>
         </div>

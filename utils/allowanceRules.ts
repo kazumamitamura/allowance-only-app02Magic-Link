@@ -10,7 +10,8 @@ export const ACTIVITY_TYPES = [
     { id: 'F', label: 'F:合宿（部活動指導）', requiresHoliday: false },
     { id: 'G', label: 'G:研修旅行等引率', requiresHoliday: false },
     { id: 'H', label: 'H:宿泊指導', requiresHoliday: false },
-    { id: 'OTHER', label: 'その他', requiresHoliday: false },
+    { id: 'DISASTER', label: '災害業務', requiresHoliday: false },
+    { id: 'CUSTOM', label: 'その他（手入力）', requiresHoliday: false },
   ]
   
 export const DESTINATIONS = [
@@ -19,6 +20,91 @@ export const DESTINATIONS = [
     { id: 'inside_long', label: '県内（片道120km以上）' },
     { id: 'outside', label: '県外' },
 ]
+
+/**
+ * マスタ参照型の手当金額計算（新版）
+ * @param activityId 活動種別
+ * @param isDriving 運転の有無
+ * @param destinationId 行き先区分
+ * @param isWorkDay 勤務日かどうか
+ * @param isAccommodation 宿泊の有無
+ * @param isHalfDay 半日かどうか（指定大会用）
+ * @param allowanceTypes マスタデータ（allowance_types）
+ * @returns 手当金額
+ */
+export const calculateAmountFromMaster = (
+    activityId: string,
+    isDriving: boolean,
+    destinationId: string,
+    isWorkDay: boolean,
+    isAccommodation: boolean = false,
+    isHalfDay: boolean = false,
+    allowanceTypes: { code: string, base_amount: number }[] = []
+): number => {
+    // マスタから基本金額を取得
+    const getMasterAmount = (code: string): number => {
+        return allowanceTypes.find(t => t.code === code)?.base_amount || 0
+    }
+
+    // 災害業務（新規）
+    if (activityId === 'DISASTER') {
+        return getMasterAmount('Disaster')
+    }
+
+    // E/F 特例: 平日・休日に関わらず常にマスタ設定金額（2,400円）を適用
+    if (activityId === 'E' || activityId === 'F') {
+        const baseAmount = getMasterAmount(activityId)
+        // 運転なしの場合
+        if (!isDriving) {
+            return baseAmount
+        }
+        // 運転ありの場合
+        if (destinationId === 'outside') {
+            return getMasterAmount('Outside_Driving') + (isAccommodation ? baseAmount : 0)
+        }
+        if (destinationId === 'inside_long') {
+            return getMasterAmount('Inside_Long_Driving') + (isAccommodation ? baseAmount : 0)
+        }
+        if (destinationId === 'inside_short' || destinationId === 'school') {
+            if (isWorkDay) {
+                return getMasterAmount('Inside_Short_Driving_Workday') + (isAccommodation ? baseAmount : 0)
+            } else {
+                return baseAmount
+            }
+        }
+    }
+
+    // その他の活動種別（既存ロジック）
+    if (activityId === 'A') {
+        if (isWorkDay) return 0
+        return getMasterAmount('A')
+    }
+
+    if (activityId === 'B') {
+        if (isWorkDay) return 0
+        return getMasterAmount('B')
+    }
+
+    if (activityId === 'C') {
+        if (isHalfDay) return getMasterAmount('B')
+        if (isDriving) return getMasterAmount('C')
+        return getMasterAmount('C')
+    }
+
+    if (activityId === 'D') {
+        return getMasterAmount('D')
+    }
+
+    if (activityId === 'G') {
+        return getMasterAmount('G')
+    }
+
+    if (activityId === 'H') {
+        return getMasterAmount('H')
+    }
+
+    return 0
+}
 
 /**
  * 手当金額計算（運転判定優先版）

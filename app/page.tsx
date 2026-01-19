@@ -5,14 +5,15 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { ACTIVITY_TYPES, DESTINATIONS, calculateAmount, canSelectActivity } from '@/utils/allowanceRules'
+import { ACTIVITY_TYPES, DESTINATIONS, calculateAmount, calculateAmountFromMaster, canSelectActivity } from '@/utils/allowanceRules'
 import { logout } from './auth/actions'
 
 const ADMIN_EMAILS = ['mitamuraka@haguroko.ed.jp', 'tomonoem@haguroko.ed.jp'].map(e => e.toLowerCase())
 
-type Allowance = { id: number, user_id: string, date: string, activity_type: string, amount: number, destination_type: string, destination_detail: string, is_driving: boolean, is_accommodation: boolean }
+type Allowance = { id: number, user_id: string, date: string, activity_type: string, amount: number, destination_type: string, destination_detail: string, is_driving: boolean, is_accommodation: boolean, custom_amount?: number, custom_description?: string }
 type SchoolCalendar = { date: string, day_type: string }
 type AnnualSchedule = { date: string, work_type: string, event_name: string }
+type AllowanceType = { id: number, code: string, display_name: string, base_amount: number, requires_holiday: boolean }
 
 const formatDate = (date: Date) => {
   const y = date.getFullYear()
@@ -33,6 +34,7 @@ export default function Home() {
   const [allowances, setAllowances] = useState<Allowance[]>([])
   const [schoolCalendar, setSchoolCalendar] = useState<SchoolCalendar[]>([])
   const [annualSchedules, setAnnualSchedules] = useState<AnnualSchedule[]>([])
+  const [allowanceTypes, setAllowanceTypes] = useState<AllowanceType[]>([])
   
   const [allowanceStatus, setAllowanceStatus] = useState<'draft' | 'submitted' | 'approved'>('draft')
   
@@ -53,6 +55,8 @@ export default function Home() {
   const [isDriving, setIsDriving] = useState(false)
   const [isAccommodation, setIsAccommodation] = useState(false)
   const [calculatedAmount, setCalculatedAmount] = useState(0)
+  const [customAmount, setCustomAmount] = useState(0)
+  const [customDescription, setCustomDescription] = useState('')
 
   const getLockStatus = (targetDate: Date) => {
     if (isAdmin) return false
@@ -82,6 +86,7 @@ export default function Home() {
       fetchData(user.id)
       fetchSchoolCalendar()
       fetchAnnualSchedules()
+      fetchAllowanceTypes()
       fetchApplicationStatus(user.id, selectedDate)
     }
     init()
@@ -134,6 +139,11 @@ export default function Home() {
     setAnnualSchedules(data || [])
   }
 
+  const fetchAllowanceTypes = async () => {
+    const { data } = await supabase.from('allowance_types').select('*').order('code')
+    setAllowanceTypes(data || [])
+  }
+
   const fetchApplicationStatus = async (uid: string, date: Date) => {
     const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     const { data } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
@@ -168,12 +178,16 @@ export default function Home() {
         setDestinationDetail(allowance.destination_detail || '')
         setIsDriving(allowance.is_driving)
         setIsAccommodation(allowance.is_accommodation)
+        setCustomAmount(allowance.custom_amount || 0)
+        setCustomDescription(allowance.custom_description || '')
       } else {
         setActivityId('')
         setDestinationId('inside_short')
         setDestinationDetail('')
         setIsDriving(false)
         setIsAccommodation(false)
+        setCustomAmount(0)
+        setCustomDescription('')
       }
     }
     updateDayInfo()
@@ -188,10 +202,19 @@ export default function Home() {
       console.warn(validation.message)
     }
     
+    // 手入力その他（CUSTOM）の場合は、カスタム金額を使用
+    if (activityId === 'CUSTOM') {
+      setCalculatedAmount(customAmount)
+      return
+    }
+    
     const isHalfDay = false
-    const amt = calculateAmount(activityId, isDriving, destinationId, isWorkDay, isAccommodation, isHalfDay)
+    // マスタ参照計算を優先、マスタがない場合は従来ロジック
+    const amt = allowanceTypes.length > 0 
+      ? calculateAmountFromMaster(activityId, isDriving, destinationId, isWorkDay, isAccommodation, isHalfDay, allowanceTypes)
+      : calculateAmount(activityId, isDriving, destinationId, isWorkDay, isAccommodation, isHalfDay)
     setCalculatedAmount(amt)
-  }, [activityId, isDriving, destinationId, dayType, isAccommodation])
+  }, [activityId, isDriving, destinationId, dayType, isAccommodation, allowanceTypes, customAmount])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -204,6 +227,14 @@ export default function Home() {
     if (!user) return
 
     if (activityId) {
+      // カスタム（手入力その他）の場合、バリデーション
+      if (activityId === 'CUSTOM') {
+        if (!customDescription || customAmount <= 0) {
+          alert('手入力その他を選択した場合、内容と金額を必ず入力してください。')
+          return
+        }
+      }
+
       await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
       await supabase.from('allowances').insert({ 
         user_id: user.id, 
@@ -211,10 +242,12 @@ export default function Home() {
         date: dateStr, 
         activity_type: ACTIVITY_TYPES.find(a => a.id === activityId)?.label || activityId, 
         destination_type: DESTINATIONS.find(d => d.id === destinationId)?.label, 
-        destination_detail: destinationDetail, 
+        destination_detail: activityId === 'CUSTOM' ? customDescription : destinationDetail, 
         is_driving: isDriving, 
         is_accommodation: isAccommodation, 
-        amount: calculatedAmount 
+        amount: calculatedAmount,
+        custom_amount: activityId === 'CUSTOM' ? customAmount : null,
+        custom_description: activityId === 'CUSTOM' ? customDescription : null
       })
     } else {
       await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
@@ -360,10 +393,21 @@ export default function Home() {
                 <h2 className="text-xl font-bold text-gray-900">{selectedDate.getFullYear()}年 {selectedDate.getMonth() + 1}月</h2>
                 <button onClick={handleNextMonth} className="text-slate-400 hover:text-slate-600 p-2 text-2xl font-bold transition">›</button>
               </div>
-              <div className="text-3xl font-extrabold text-blue-600">¥{calculateMonthTotal().toLocaleString()}</div>
+              <div className="flex flex-col items-start">
+                <div className="text-3xl font-extrabold text-blue-600">¥{calculateMonthTotal().toLocaleString()}</div>
+                <div className="flex gap-3 mt-1 text-xs text-gray-600">
+                  <span>🏕️ 合宿: {allowances.filter(a => { const d = new Date(a.date); return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear() && a.activity_type.includes('合宿') }).length}日</span>
+                  <span>🚌 遠征: {allowances.filter(a => { const d = new Date(a.date); return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear() && a.activity_type.includes('遠征') }).length}日</span>
+                </div>
+              </div>
             </div>
             
             <div className="flex items-center gap-3">
+              {/* 期限通知 */}
+              <div className="bg-red-50 border-2 border-red-300 px-4 py-2 rounded-lg">
+                <span className="text-red-700 font-bold text-sm">⚠️ 入力申請期限：翌月の10日締め切り</span>
+              </div>
+              
               {/* 手当申請ステータス */}
               <div className="flex items-center gap-2">
                   {allowanceStatus === 'approved' && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">💰 承認済</span>}
@@ -485,20 +529,51 @@ export default function Home() {
                 </div>
                 {activityId && (
                 <>
-                    {/* 「その他」選択時は内容入力欄を全幅で表示 */}
-                    {activityId === 'OTHER' ? (
+                    {/* 災害業務選択時 */}
+                    {activityId === 'DISASTER' ? (
                         <div className="mt-2">
-                            <label className="block text-xs font-bold text-red-600 mb-1">具体的な内容（必須）</label>
+                            <label className="block text-xs font-bold text-orange-600 mb-1">災害業務の内容（必須）</label>
                             <input 
                                 disabled={isAllowLocked} 
                                 type="text" 
-                                placeholder="例: 非常災害による緊急対応" 
+                                placeholder="例: 台風による緊急待機" 
                                 value={destinationDetail} 
                                 onChange={(e) => setDestinationDetail(e.target.value)} 
-                                className="w-full bg-white p-3 rounded-lg border border-red-200 text-xs text-black font-bold" 
+                                className="w-full bg-white p-3 rounded-lg border border-orange-200 text-xs text-black font-bold" 
                                 required
                             />
-                            <div className="text-xs text-slate-500 mt-1">※「その他」を選択した場合は、具体的な業務内容を必ず記入してください。</div>
+                            <div className="text-xs text-orange-500 mt-1">※災害業務の内容を具体的に記入してください。</div>
+                        </div>
+                    ) : activityId === 'CUSTOM' ? (
+                        /* 手入力その他選択時 */
+                        <div className="mt-2 space-y-2">
+                            <div>
+                                <label className="block text-xs font-bold text-purple-600 mb-1">業務内容（必須）</label>
+                                <input 
+                                    disabled={isAllowLocked} 
+                                    type="text" 
+                                    placeholder="例: 特別講習会の引率" 
+                                    value={customDescription} 
+                                    onChange={(e) => setCustomDescription(e.target.value)} 
+                                    className="w-full bg-white p-3 rounded-lg border border-purple-200 text-xs text-black font-bold" 
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-purple-600 mb-1">金額（必須）</label>
+                                <input 
+                                    disabled={isAllowLocked} 
+                                    type="number" 
+                                    min="0"
+                                    step="100"
+                                    placeholder="例: 3000" 
+                                    value={customAmount || ''} 
+                                    onChange={(e) => setCustomAmount(parseInt(e.target.value) || 0)} 
+                                    className="w-full bg-white p-3 rounded-lg border border-purple-200 text-xs text-black font-bold" 
+                                    required
+                                />
+                            </div>
+                            <div className="text-xs text-purple-500">※手入力その他の場合、内容と金額を必ず入力してください。</div>
                         </div>
                     ) : (
                     <div className="grid grid-cols-2 gap-2 mt-2">

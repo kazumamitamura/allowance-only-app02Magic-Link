@@ -61,6 +61,19 @@ export default function ExportPage() {
 
     const user = users.find(u => u.email === selectedUser)
     
+    // 合計計算
+    const total = allowances?.reduce((sum, item) => sum + item.amount, 0) || 0
+    const campDays = allowances?.filter(a => a.activity_type.includes('合宿')).length || 0
+    const expeditionDays = allowances?.filter(a => a.activity_type.includes('遠征')).length || 0
+    
+    // ヘッダー情報（1〜4行目）
+    const headerData = [
+      { 'A': '手当明細書' },
+      { 'A': `氏名: ${user?.full_name || selectedUser}` },
+      { 'A': `合計金額: ¥${total.toLocaleString()}`, 'B': `合宿合計日数: ${campDays}日`, 'C': `遠征合計日数: ${expeditionDays}日` },
+      {}  // 空行
+    ]
+    
     // Excel用データ整形
     const excelData = allowances?.map(item => ({
       '日付': item.date,
@@ -73,7 +86,6 @@ export default function ExportPage() {
     })) || []
 
     // 合計行
-    const total = allowances?.reduce((sum, item) => sum + item.amount, 0) || 0
     excelData.push({
       '日付': '合計',
       '業務内容': '',
@@ -84,8 +96,10 @@ export default function ExportPage() {
       '金額': total
     })
 
-    // Excelファイル生成
-    const ws = XLSX.utils.json_to_sheet(excelData)
+    // Excelファイル生成（ヘッダー情報を含む）
+    const ws = XLSX.utils.json_to_sheet(headerData, { skipHeader: true })
+    XLSX.utils.sheet_add_json(ws, excelData, { origin: 'A5' })
+    
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '手当明細')
     
@@ -122,6 +136,19 @@ export default function ExportPage() {
       monthlyTotals[month] = (monthlyTotals[month] || 0) + item.amount
     })
 
+    // 合計計算
+    const total = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0)
+    const campDays = allowances?.filter(a => a.activity_type.includes('合宿')).length || 0
+    const expeditionDays = allowances?.filter(a => a.activity_type.includes('遠征')).length || 0
+
+    // ヘッダー情報（1〜4行目）
+    const headerData = [
+      { 'A': '手当年間集計' },
+      { 'A': `氏名: ${user?.full_name || selectedUser}` },
+      { 'A': `合計金額: ¥${total.toLocaleString()}`, 'B': `合宿合計日数: ${campDays}日`, 'C': `遠征合計日数: ${expeditionDays}日` },
+      {}  // 空行
+    ]
+
     // Excel用データ整形
     const excelData = Array.from({ length: 12 }, (_, i) => ({
       '月': `${i + 1}月`,
@@ -130,15 +157,16 @@ export default function ExportPage() {
     }))
 
     // 合計行
-    const total = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0)
     excelData.push({
       '月': '年間合計',
       '件数': allowances?.length || 0,
       '金額': total
     })
 
-    // Excelファイル生成
-    const ws = XLSX.utils.json_to_sheet(excelData)
+    // Excelファイル生成（ヘッダー情報を含む）
+    const ws = XLSX.utils.json_to_sheet(headerData, { skipHeader: true })
+    XLSX.utils.sheet_add_json(ws, excelData, { origin: 'A5' })
+    
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '年間集計')
     
@@ -162,18 +190,22 @@ export default function ExportPage() {
       .order('user_email')
 
     // ユーザー別集計
-    const userTotals: Record<string, { name: string, count: number, amount: number }> = {}
+    const userTotals: Record<string, { name: string, count: number, amount: number, camp: number, expedition: number }> = {}
     allowances?.forEach(item => {
       if (!userTotals[item.user_email]) {
         const user = users.find(u => u.email === item.user_email)
         userTotals[item.user_email] = {
           name: user?.full_name || item.user_email,
           count: 0,
-          amount: 0
+          amount: 0,
+          camp: 0,
+          expedition: 0
         }
       }
       userTotals[item.user_email].count++
       userTotals[item.user_email].amount += item.amount
+      if (item.activity_type.includes('合宿')) userTotals[item.user_email].camp++
+      if (item.activity_type.includes('遠征')) userTotals[item.user_email].expedition++
     })
 
     // Excel用データ整形
@@ -181,21 +213,37 @@ export default function ExportPage() {
       '職員名': data.name,
       'メールアドレス': email,
       '件数': data.count,
-      '金額': data.amount
+      '金額': data.amount,
+      '合宿日数': data.camp,
+      '遠征日数': data.expedition
     }))
 
     // 合計行
     const totalCount = excelData.reduce((sum, row) => sum + row['件数'], 0)
     const totalAmount = excelData.reduce((sum, row) => sum + row['金額'], 0)
+    const totalCamp = excelData.reduce((sum, row) => sum + row['合宿日数'], 0)
+    const totalExpedition = excelData.reduce((sum, row) => sum + row['遠征日数'], 0)
     excelData.push({
       '職員名': '合計',
       'メールアドレス': '',
       '件数': totalCount,
-      '金額': totalAmount
+      '金額': totalAmount,
+      '合宿日数': totalCamp,
+      '遠征日数': totalExpedition
     })
 
-    // Excelファイル生成
-    const ws = XLSX.utils.json_to_sheet(excelData)
+    // ヘッダー情報（1〜4行目）
+    const headerData = [
+      { 'A': '手当全体集計（月次）' },
+      { 'A': `対象月: ${yearMonth}` },
+      { 'A': `合計金額: ¥${totalAmount.toLocaleString()}`, 'B': `合宿合計日数: ${totalCamp}日`, 'C': `遠征合計日数: ${totalExpedition}日` },
+      {}  // 空行
+    ]
+
+    // Excelファイル生成（ヘッダー情報を含む）
+    const ws = XLSX.utils.json_to_sheet(headerData, { skipHeader: true })
+    XLSX.utils.sheet_add_json(ws, excelData, { origin: 'A5' })
+    
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '全体集計')
     
@@ -218,18 +266,22 @@ export default function ExportPage() {
       .order('user_email')
 
     // ユーザー別集計
-    const userTotals: Record<string, { name: string, count: number, amount: number }> = {}
+    const userTotals: Record<string, { name: string, count: number, amount: number, camp: number, expedition: number }> = {}
     allowances?.forEach(item => {
       if (!userTotals[item.user_email]) {
         const user = users.find(u => u.email === item.user_email)
         userTotals[item.user_email] = {
           name: user?.full_name || item.user_email,
           count: 0,
-          amount: 0
+          amount: 0,
+          camp: 0,
+          expedition: 0
         }
       }
       userTotals[item.user_email].count++
       userTotals[item.user_email].amount += item.amount
+      if (item.activity_type.includes('合宿')) userTotals[item.user_email].camp++
+      if (item.activity_type.includes('遠征')) userTotals[item.user_email].expedition++
     })
 
     // Excel用データ整形
@@ -237,21 +289,37 @@ export default function ExportPage() {
       '職員名': data.name,
       'メールアドレス': email,
       '件数': data.count,
-      '金額': data.amount
+      '金額': data.amount,
+      '合宿日数': data.camp,
+      '遠征日数': data.expedition
     }))
 
     // 合計行
     const totalCount = excelData.reduce((sum, row) => sum + row['件数'], 0)
     const totalAmount = excelData.reduce((sum, row) => sum + row['金額'], 0)
+    const totalCamp = excelData.reduce((sum, row) => sum + row['合宿日数'], 0)
+    const totalExpedition = excelData.reduce((sum, row) => sum + row['遠征日数'], 0)
     excelData.push({
       '職員名': '合計',
       'メールアドレス': '',
       '件数': totalCount,
-      '金額': totalAmount
+      '金額': totalAmount,
+      '合宿日数': totalCamp,
+      '遠征日数': totalExpedition
     })
 
-    // Excelファイル生成
-    const ws = XLSX.utils.json_to_sheet(excelData)
+    // ヘッダー情報（1〜4行目）
+    const headerData = [
+      { 'A': '手当年間全体集計' },
+      { 'A': `対象年: ${selectedYear}年` },
+      { 'A': `合計金額: ¥${totalAmount.toLocaleString()}`, 'B': `合宿合計日数: ${totalCamp}日`, 'C': `遠征合計日数: ${totalExpedition}日` },
+      {}  // 空行
+    ]
+
+    // Excelファイル生成（ヘッダー情報を含む）
+    const ws = XLSX.utils.json_to_sheet(headerData, { skipHeader: true })
+    XLSX.utils.sheet_add_json(ws, excelData, { origin: 'A5' })
+    
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '年間全体集計')
     
