@@ -7,9 +7,6 @@ import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { ACTIVITY_TYPES, DESTINATIONS, calculateAmount, canSelectActivity } from '@/utils/allowanceRules'
 
-// Force dynamic rendering for Vercel deployment
-export const dynamic = 'force-dynamic'
-
 const ADMIN_EMAILS = ['mitamuraka@haguroko.ed.jp', 'tomonoem@haguroko.ed.jp'].map(e => e.toLowerCase())
 
 type Allowance = { id: number, user_id: string, date: string, activity_type: string, amount: number, destination_type: string, destination_detail: string, is_driving: boolean, is_accommodation: boolean }
