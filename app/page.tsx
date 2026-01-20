@@ -41,6 +41,11 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [dayType, setDayType] = useState<string>('---')
   
+  // 月次集計データ
+  const [monthTotal, setMonthTotal] = useState(0)
+  const [campDays, setCampDays] = useState(0)
+  const [expeditionDays, setExpeditionDays] = useState(0)
+  
   // 氏名登録モーダル用
   const [showProfileModal, setShowProfileModal] = useState(false)
   
@@ -144,9 +149,53 @@ export default function Home() {
 
   useEffect(() => { if (userId) fetchApplicationStatus(userId, selectedDate) }, [selectedDate, userId])
 
+  // 月次集計の自動計算
+  useEffect(() => {
+    const monthAllowances = allowances.filter(i => {
+      const d = new Date(i.date)
+      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+    })
+
+    // 合計金額
+    const total = monthAllowances.reduce((sum, i) => sum + i.amount, 0)
+    setMonthTotal(total)
+
+    // 合宿日数（activity_typeに「合宿」を含む、またはcodeが'F'）
+    const camps = monthAllowances.filter(a => 
+      a.activity_type.includes('合宿') || a.activity_type.includes('Training Camp')
+    ).length
+    setCampDays(camps)
+
+    // 遠征日数（activity_typeに「遠征」を含む、またはcodeが'E'）
+    const expeditions = monthAllowances.filter(a => 
+      a.activity_type.includes('遠征') || a.activity_type.includes('Expedition')
+    ).length
+    setExpeditionDays(expeditions)
+
+    console.log('月次集計更新:', {
+      year: selectedDate.getFullYear(),
+      month: selectedDate.getMonth() + 1,
+      total,
+      camps,
+      expeditions,
+      dataCount: monthAllowances.length
+    })
+  }, [allowances, selectedDate])
+
   const fetchData = async (uid: string) => {
-    const { data: allowData } = await supabase.from('allowances').select('*').eq('user_id', uid).order('date', { ascending: false })
-    setAllowances(allowData || [])
+    console.log('手当データ取得中:', uid)
+    const { data: allowData, error } = await supabase
+      .from('allowances')
+      .select('*')
+      .eq('user_id', uid)
+      .order('date', { ascending: false })
+    
+    if (error) {
+      console.error('手当データ取得エラー:', error)
+    } else {
+      console.log('手当データ取得成功:', allowData?.length, '件')
+      setAllowances(allowData || [])
+    }
   }
 
   const fetchSchoolCalendar = async () => {
@@ -372,13 +421,6 @@ export default function Home() {
   }
   const handlePrevMonth = () => { const d = new Date(selectedDate); d.setMonth(d.getMonth() - 1); setSelectedDate(d) }
   const handleNextMonth = () => { const d = new Date(selectedDate); d.setMonth(d.getMonth() + 1); setSelectedDate(d) }
-  const calculateMonthTotal = () => { 
-    const m = selectedDate.getMonth(), y = selectedDate.getFullYear()
-    return allowances.filter(i => { 
-      const d = new Date(i.date)
-      return d.getMonth() === m && d.getFullYear() === y 
-    }).reduce((s, i) => s + i.amount, 0) 
-  }
   
   // カレンダー日付クリック時の処理
   const handleDateClick = (date: Date) => {
@@ -476,10 +518,11 @@ export default function Home() {
                 <button onClick={handleNextMonth} className="text-slate-400 hover:text-slate-600 p-2 text-2xl font-bold transition">›</button>
               </div>
               <div className="flex flex-col items-start">
-                <div className="text-3xl font-extrabold text-blue-600">¥{calculateMonthTotal().toLocaleString()}</div>
+                <div className="text-sm text-gray-600 font-medium">支給予定額</div>
+                <div className="text-3xl font-extrabold text-blue-600">¥{monthTotal.toLocaleString()}</div>
                 <div className="flex gap-3 mt-1 text-xs text-gray-600">
-                  <span>🏕️ 合宿: {allowances.filter(a => { const d = new Date(a.date); return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear() && a.activity_type.includes('合宿') }).length}日</span>
-                  <span>🚌 遠征: {allowances.filter(a => { const d = new Date(a.date); return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear() && a.activity_type.includes('遠征') }).length}日</span>
+                  <span>🏕️ 合宿: {campDays}日</span>
+                  <span>🚌 遠征: {expeditionDays}日</span>
                 </div>
               </div>
             </div>
