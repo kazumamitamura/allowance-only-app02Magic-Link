@@ -77,30 +77,40 @@ export const calculateAmountFromMaster = (
     // その他の活動種別（既存ロジック）
     if (activityId === 'A') {
         if (isWorkDay) return 0
-        return getMasterAmount('A')
+        const aAmount = getMasterAmount('A')
+        return aAmount > 0 ? aAmount : 2400 // フォールバック
     }
 
     if (activityId === 'B') {
         if (isWorkDay) return 0
-        return getMasterAmount('B')
+        const bAmount = getMasterAmount('B')
+        return bAmount > 0 ? bAmount : 1700 // フォールバック
     }
 
     if (activityId === 'C') {
-        if (isHalfDay) return getMasterAmount('B')
-        if (isDriving) return getMasterAmount('C')
-        return getMasterAmount('C')
+        if (isHalfDay) {
+            const halfDayAmount = getMasterAmount('B')
+            return halfDayAmount > 0 ? halfDayAmount : 1700 // フォールバック
+        }
+        const cAmount = getMasterAmount('C')
+        if (cAmount > 0) return cAmount
+        // マスタが0の場合、従来ロジックにフォールバック
+        return 3400
     }
 
     if (activityId === 'D') {
-        return getMasterAmount('D')
+        const dAmount = getMasterAmount('D')
+        return dAmount > 0 ? dAmount : 2400 // フォールバック
     }
 
     if (activityId === 'G') {
-        return getMasterAmount('G')
+        const gAmount = getMasterAmount('G')
+        return gAmount > 0 ? gAmount : 3400 // フォールバック
     }
 
     if (activityId === 'H') {
-        return getMasterAmount('H')
+        const hAmount = getMasterAmount('H')
+        return hAmount > 0 ? hAmount : 2400 // フォールバック
     }
 
     return 0
