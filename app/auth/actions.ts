@@ -72,40 +72,42 @@ export async function signup(formData: FormData) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
+  console.log('新規登録試行:', email)
+
   // Supabase認証での新規登録
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: fullName.trim(),
+        full_name: fullName,
       },
+      emailRedirectTo: undefined, // メール確認リンクを無効化
     },
   })
 
   if (error) {
-    console.error('サインアップエラー:', error)
+    console.error('サインアップエラー:', error.message, error.status)
     
     // 既に登録済みの場合は、自動的にログインを試みる（親切な処理）
     if (error.message.includes('already registered') || error.message.includes('User already registered')) {
       console.log('既存ユーザー検出、ログインを試行します...')
       
       // ログインを試みる
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
       
-      if (!loginError) {
-        // ログイン成功！プロフィールを更新してリダイレクト
-        console.log('自動ログイン成功')
+      if (!loginError && loginData.user) {
+        console.log('自動ログイン成功:', loginData.user.id)
         
         // セッションが確立されるまで少し待つ
         await new Promise(resolve => setTimeout(resolve, 500))
         
         redirect('/')
       } else {
-        // パスワードが違う場合
+        console.error('自動ログイン失敗:', loginError?.message)
         return { error: 'このメールアドレスは既に登録されています。パスワードが正しくありません。' }
       }
     }
@@ -120,6 +122,8 @@ export async function signup(formData: FormData) {
     
     return { error: `登録に失敗しました: ${error.message}` }
   }
+
+  console.log('サインアップ成功:', data.user?.id, '確認ステータス:', data.user?.email_confirmed_at)
 
   // ユーザー登録成功後、プロフィールをupsert（user_idをキーに）
   if (data.user) {
@@ -147,12 +151,37 @@ export async function signup(formData: FormData) {
       console.error('プロフィールupsert例外:', err)
       // エラーでもログインは成功しているので続行
     }
+
+    // メール確認が必要な場合、ログインを試みる
+    if (!data.session) {
+      console.log('セッションなし - 自動ログインを試みます')
+      
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (loginError) {
+        console.error('自動ログイン失敗:', loginError.message)
+        
+        if (loginError.message.includes('Email not confirmed')) {
+          return { 
+            error: '登録は完了しましたが、メールアドレスの確認が必要です。管理者にお問い合わせください。' 
+          }
+        }
+        
+        return { error: `登録は完了しましたが、ログインに失敗しました: ${loginError.message}` }
+      }
+      
+      console.log('自動ログイン成功:', loginData.user?.id)
+    }
   }
 
   // セッションが確立されるまで少し待つ
-  await new Promise(resolve => setTimeout(resolve, 500))
+  await new Promise(resolve => setTimeout(resolve, 1000))
 
   // 登録成功、確実にリダイレクト
+  console.log('リダイレクト to /')
   redirect('/')
 }
 

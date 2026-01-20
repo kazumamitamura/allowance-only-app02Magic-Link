@@ -1,157 +1,175 @@
-# 手当管理特化型アプリ (Allowance Management System)
+# 💰 手当管理システム
 
-部活動・業務手当の入力・申請・承認に特化したシンプルな管理システムです。
+部活動指導手当の入力・管理アプリケーション
 
-## 🎯 特徴
+## 🚨 初回セットアップ（必須）
 
-- **シンプルな手当入力**: カレンダーから日付を選択して手当を入力
-- **自動金額計算**: 活動内容・行き先・運転有無・宿泊有無に応じて自動計算
-- **月次申請フロー**: 職員が月末に手当を申請し、管理者が承認
-- **Excel出力**: 個人・全体の月次・年次レポートをExcel形式で出力
+### ⚠️ Supabase設定が必須です！
 
-## 🚀 セットアップ
+アプリを使用する前に、必ず以下の設定を完了してください：
 
-### 1. 依存関係のインストール
+1. **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md) を開く**
+2. **3つのステップを順番に実行**：
+   - ステップ1：メール確認を無効化
+   - ステップ2：既存ユーザーのメール確認ステータスを更新
+   - ステップ3：カスケード削除設定
+
+⚠️ **この設定をしないと、新規登録・ログインができません！**
+
+---
+
+## 📋 機能一覧
+
+### ユーザー機能
+- ✅ カレンダー形式での手当入力
+- ✅ 活動種別の選択（部活動、宿泊指導、遠征引率など）
+- ✅ 運転フラグ、宿泊フラグによる金額の自動計算
+- ✅ 月別の合計金額表示
+- ✅ 手当の申請・承認フロー
+- ✅ 締め切り機能（翌月10日まで入力可能）
+
+### 管理者機能
+- ✅ 全職員の手当承認・却下
+- ✅ 個別・全体のExcel出力（帳票形式）
+- ✅ 手当設定の管理
+- ✅ 年間勤務表のCSVアップロード
+
+---
+
+## 🛠️ 技術スタック
+
+- **フレームワーク**: Next.js 16 (App Router)
+- **言語**: TypeScript
+- **認証・DB**: Supabase
+- **スタイリング**: Tailwind CSS
+- **デプロイ**: Vercel
+
+---
+
+## 🚀 ローカル開発環境のセットアップ
+
+### 1. リポジトリをクローン
+
+```bash
+git clone https://github.com/kazumamitamura/allowance-simple.git
+cd allowance-simple
+```
+
+### 2. 依存関係をインストール
 
 ```bash
 npm install
 ```
 
-### 2. 環境変数の設定
+### 3. 環境変数を設定
 
-`.env.local` ファイルを作成し、Supabaseの接続情報を設定してください：
+`.env.local` ファイルを作成し、以下を設定：
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 3. 開発サーバーの起動
+### 4. Supabase設定を完了
+
+⚠️ **必須**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) の手順を実行してください
+
+### 5. 開発サーバーを起動
 
 ```bash
 npm run dev
 ```
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開いてください。
+ブラウザで `http://localhost:3000` を開きます。
 
-## 📋 主な機能
+---
 
-### 職員画面 (`/`)
+## 📦 デプロイ
 
-- **カレンダー表示**: 月次カレンダーで手当が登録されている日を一目で確認
-- **手当入力**: 日付をクリックして手当内容を入力（活動内容・行き先・運転・宿泊）
-- **金額自動計算**: 入力内容に応じて支給額を自動計算
-- **月次申請**: 月末に手当を確定して管理者に申請
-- **氏名登録**: 帳票出力用の氏名を登録
+### Vercelへのデプロイ
 
-### 管理者画面 (`/admin`)
+1. Vercelアカウントにログイン
+2. GitHubリポジトリを接続
+3. 環境変数を設定（`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`）
+4. デプロイ
 
-- **手当承認**: 職員からの手当申請を確認・承認
-- **Excel出力**: 以下の4パターンの出力に対応
-  - 個人の月次レポート
-  - 個人の年次レポート
-  - 全体の月次レポート
-  - 全体の年次レポート
+### 本番環境URL
 
-## 🔧 技術スタック
+https://haguro-allowance-app.vercel.app
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **UI Components**: React Calendar, Tailwind CSS
-- **Excel Export**: xlsx (SheetJS)
+---
 
-## 📁 プロジェクト構造
-
-```
-allowance-only-app/
-├── app/
-│   ├── page.tsx              # 職員画面（手当入力）
-│   ├── login/page.tsx        # ログイン画面
-│   ├── admin/
-│   │   ├── page.tsx          # 管理者ダッシュボード
-│   │   ├── allowances/       # 手当承認画面
-│   │   └── export/           # Excel出力画面
-│   ├── layout.tsx            # レイアウト
-│   └── globals.css           # グローバルスタイル
-├── utils/
-│   ├── allowanceRules.ts     # 手当計算ロジック
-│   ├── adminRoles.ts         # 管理者権限チェック
-│   └── supabase/
-│       └── client.ts         # Supabaseクライアント
-└── README.md
-```
-
-## 💡 手当計算ルール
-
-手当額は以下の要素で自動計算されます：
-
-### 活動内容
-- **A**: 休日部活(1日) - 2,400円
-- **B**: 休日部活(半日) - 1,700円
-- **C**: 指定大会 - 3,400円
-- **D**: 指定外大会 - 2,400円
-- **E/F**: 練習試合・遠征（運転有無・勤務日/休日で変動）
-- **G**: 研修旅行等引率 - 3,400円
-- **H**: 宿泊指導 - 2,400円
-- **その他**: 6,000円
-
-### 追加要素
-- **運転あり**: 県内120km以上（7,500円）、県外（15,000円）、管内（活動内容により変動）
-- **宿泊あり**: +2,400円（活動内容により適用条件あり）
-
-詳細な計算ロジックは `utils/allowanceRules.ts` を参照してください。
-
-## 🔐 認証と権限
-
-- 一般職員: 自分の手当入力・申請のみ可能
-- 管理者: 全職員の手当承認・Excel出力が可能
-- 管理者メールアドレスは `utils/adminRoles.ts` で設定
-
-## 📊 データベーステーブル
+## 🗄️ データベーススキーマ
 
 ### 主要テーブル
-- `allowances`: 手当データ（日付・活動内容・金額等）
-- `monthly_applications`: 月次申請データ（申請状態管理）
-- `user_profiles`: ユーザープロフィール（氏名等）
-- `school_calendar`: 学校カレンダー（勤務日/休日判定用）
 
-## 🛠️ 開発
+- **`auth.users`**: Supabase認証ユーザー
+- **`user_profiles`**: ユーザープロフィール（氏名など）
+- **`allowances`**: 手当データ
+- **`allowance_types`**: 手当種別マスタ
+- **`school_calendar`**: 学校カレンダー（休日判定）
+- **`annual_schedules`**: 年間勤務表
 
-### ビルド
+---
 
-```bash
-npm run build
-```
+## 🔐 管理者設定
 
-### リンターチェック
+以下のメールアドレスが管理者として登録されています：
 
-```bash
-npm run lint
-```
+- `mitamuraka@haguroko.ed.jp`
+- `tomonoem@haguroko.ed.jp`
 
-## 📝 更新履歴
+管理者は `/admin` ページにアクセスできます。
 
-### v3.0 - 手当管理特化版
-- 勤務表管理機能を削除
-- 休暇管理機能を削除
-- 手当管理機能のみに特化してシンプル化
-- カレンダーUIを手当金額表示のみに変更
-- 管理画面を手当管理とExcel出力のみに整理
+---
+
+## 🐛 トラブルシューティング
+
+### ログインできない場合
+
+1. **Supabase設定を確認**
+   - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) のステップ1と2を実行したか確認
+
+2. **ブラウザのコンソールを確認**
+   - F12キーを押してConsoleタブを確認
+   - エラーメッセージをコピーして調査
+
+3. **キャッシュをクリア**
+   - Ctrl+Shift+Delete でブラウザキャッシュをクリア
+
+### ユーザーを削除できない場合
+
+1. **カスケード削除設定を確認**
+   - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) のステップ3を実行したか確認
+
+### 登録後にログイン画面に戻る場合
+
+1. **メール確認設定を無効化**
+   - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) のステップ1を実行
+
+2. **既存ユーザーを確認済みに更新**
+   - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) のステップ2を実行
+
+---
 
 ## 📄 ライセンス
 
-このプロジェクトは学校法人内部利用を目的としています。
+MIT License
 
-## 👥 開発者向け情報
+---
 
-### 主要な関数
-- `calculateAmount()`: 手当金額の自動計算
-- `canSelectActivity()`: 活動内容の選択可否判定
-- `getLockStatus()`: 編集可否の判定（申請後・締切後はロック）
+## 👤 作成者
 
-### カスタマイズ
-- 手当計算ロジック: `utils/allowanceRules.ts`
-- 管理者リスト: `utils/adminRoles.ts`
-- スタイル: `app/globals.css`
+羽黒高等学校 - 手当管理システムプロジェクト
+
+---
+
+## 📞 サポート
+
+問題が発生した場合は、以下を確認してください：
+
+1. [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) の設定を完了したか
+2. ブラウザのコンソールエラー（F12キー）
+3. Vercelのデプロイログ
+
+それでも解決しない場合は、管理者にお問い合わせください。
