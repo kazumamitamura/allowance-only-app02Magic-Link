@@ -108,14 +108,20 @@ export default function Home() {
       }
       const fullName = `${inputLastName.trim()} ${inputFirstName.trim()}`
       
+      // user_id と email の両方を含めてupsert
       const { error } = await supabase.from('user_profiles').upsert({
-          email: userEmail,
+          user_id: userId,      // user_id を含める（主キー）
+          email: userEmail,     // email も含める
           full_name: fullName
+      }, {
+          onConflict: 'user_id'  // user_id で競合判定
       })
 
       if (error) {
+          console.error('氏名登録エラー:', error)
           alert('エラーが発生しました: ' + error.message)
       } else {
+          console.log('氏名登録成功:', fullName)
           setUserName(fullName)
           setShowProfileModal(false)
           alert('氏名を登録しました！')

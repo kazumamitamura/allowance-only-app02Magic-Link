@@ -64,12 +64,29 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    // 詳細なエラーメッセージ
     console.error('サインアップエラー:', error)
     
-    if (error.message.includes('already registered')) {
-      return { error: 'このメールアドレスはすでに登録されています。ログインしてください。' }
+    // 既に登録済みの場合は、自動的にログインを試みる（親切な処理）
+    if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+      console.log('既存ユーザー検出、ログインを試行します...')
+      
+      // ログインを試みる
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (!loginError) {
+        // ログイン成功！プロフィールを更新してリダイレクト
+        console.log('自動ログイン成功')
+        redirect('/')
+      } else {
+        // パスワードが違う場合
+        return { error: 'このメールアドレスは既に登録されています。パスワードが正しくありません。' }
+      }
     }
+    
+    // その他のエラー
     if (error.message.includes('Password')) {
       return { error: 'パスワードが要件を満たしていません。6文字以上で入力してください。' }
     }
@@ -80,22 +97,27 @@ export async function signup(formData: FormData) {
     return { error: `登録に失敗しました: ${error.message}` }
   }
 
-  // ユーザー登録成功後、プロフィールをupsert（トリガーで作成済みでも上書き）
+  // ユーザー登録成功後、プロフィールをupsert（user_idをキーに）
   if (data.user) {
     try {
-      // email をキーとしてupsert（重複時は上書き更新）
+      console.log('プロフィール作成:', data.user.id, email, fullName.trim())
+      
+      // user_id をキーとしてupsert（重複時は上書き更新）
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
-          email: email,
+          user_id: data.user.id,  // user_id を含める
+          email: email,           // email を含める
           full_name: fullName.trim(),
         }, {
-          onConflict: 'email'  // emailカラムをユニーク制約として扱う
+          onConflict: 'user_id'  // user_id をユニーク制約として扱う
         })
 
       if (profileError) {
         console.error('プロフィール作成エラー:', profileError)
         // プロフィール作成失敗でもログインは成功しているので続行
+      } else {
+        console.log('プロフィール作成成功')
       }
     } catch (err) {
       console.error('プロフィールupsert例外:', err)
@@ -103,6 +125,7 @@ export async function signup(formData: FormData) {
     }
   }
 
+  // 登録成功、確実にリダイレクト
   redirect('/')
 }
 
