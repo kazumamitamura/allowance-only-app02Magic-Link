@@ -153,35 +153,54 @@ export default function AdminDashboard() {
         </div>
 
         {/* メインメニューカード */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* 手当管理 */}
           <button 
             onClick={() => router.push('/admin/allowances')}
-            className="bg-gradient-to-br from-blue-500 to-blue-600 p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+            className="bg-gradient-to-br from-blue-500 to-blue-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
           >
-            <div className="flex items-start justify-between mb-6">
-              <div className="text-6xl">💰</div>
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">💰</div>
               {stats.pendingAllowances > 0 && (
-                <span className="bg-white text-blue-600 px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                <span className="bg-white text-blue-600 px-3 py-1 rounded-full text-xs font-bold shadow-lg">
                   {stats.pendingAllowances}件
                 </span>
               )}
             </div>
-            <h3 className="text-3xl font-extrabold text-white mb-3">
+            <h3 className="text-2xl font-extrabold text-white mb-2">
               手当管理
             </h3>
-            <p className="text-blue-100 text-sm mb-4">
+            <p className="text-blue-100 text-xs mb-3">
               部活動手当の承認・集計
             </p>
-            <div className="text-xs text-blue-200 bg-blue-700/30 px-3 py-2 rounded-lg inline-block">
+            <div className="text-xs text-blue-200 bg-blue-700/30 px-2 py-1 rounded-lg inline-block">
               担当：友野・武田事務長
+            </div>
+          </button>
+
+          {/* データプレビュー（新規） */}
+          <button 
+            onClick={() => router.push('/admin/preview')}
+            className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">📊</div>
+            </div>
+            <h3 className="text-2xl font-extrabold text-white mb-2">
+              データプレビュー
+            </h3>
+            <p className="text-indigo-100 text-xs mb-3">
+              全職員の入力内容を確認
+            </p>
+            <div className="text-xs text-indigo-200 bg-indigo-700/30 px-2 py-1 rounded-lg inline-block">
+              スプレッドシート形式
             </div>
           </button>
 
           {/* Excel出力 */}
           <button 
             onClick={() => router.push('/admin/export')}
-            className="bg-gradient-to-br from-green-500 to-green-600 p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+            className="bg-gradient-to-br from-green-500 to-green-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
           >
             <div className="flex items-start justify-between mb-6">
               <div className="text-6xl">📊</div>

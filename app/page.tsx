@@ -244,7 +244,17 @@ export default function Home() {
     }
     const dateStr = formatDate(selectedDate)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      console.error('ユーザー情報が取得できません')
+      alert('ユーザー情報が取得できません。再ログインしてください。')
+      return
+    }
+
+    console.log('保存するユーザー:', {
+      user_id: user.id,
+      email: user.email,
+      date: dateStr
+    })
 
     if (activityId) {
       // カスタム（手入力その他）の場合、バリデーション
@@ -255,8 +265,14 @@ export default function Home() {
         }
       }
 
-      await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
-      await supabase.from('allowances').insert({ 
+      // 既存データを削除
+      const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+      if (deleteError) {
+        console.error('削除エラー:', deleteError)
+      }
+
+      // 新規データを挿入
+      const insertData = { 
         user_id: user.id, 
         user_email: user.email, 
         date: dateStr, 
@@ -268,12 +284,28 @@ export default function Home() {
         amount: calculatedAmount,
         custom_amount: activityId === 'CUSTOM' ? customAmount : null,
         custom_description: activityId === 'CUSTOM' ? customDescription : null
-      })
+      }
+      
+      console.log('挿入データ:', insertData)
+      
+      const { data: insertedData, error: insertError } = await supabase.from('allowances').insert(insertData).select()
+      
+      if (insertError) {
+        console.error('挿入エラー:', insertError)
+        alert('保存に失敗しました: ' + insertError.message)
+        return
+      }
+      
+      console.log('挿入成功:', insertedData)
     } else {
-      await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+      // 手当なしの場合は削除のみ
+      const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+      if (deleteError) {
+        console.error('削除エラー:', deleteError)
+      }
     }
     
-    fetchData(user.id)
+    await fetchData(user.id)
     setShowInputModal(false)
     alert('保存しました')
   }
@@ -289,18 +321,48 @@ export default function Home() {
   }
   
   const handleSubmit = async () => {
-    if (!confirm(`${selectedDate.getMonth()+1}月分の手当を確定して申請しますか？\n※申請すると、承認されるまで手当の修正ができなくなります。`)) return
+    // 手当データの確認
+    const monthAllowances = allowances.filter(i => {
+      const d = new Date(i.date)
+      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+    })
+
+    if (monthAllowances.length === 0) {
+      alert('手当データが登録されていません。先に手当を入力してください。')
+      return
+    }
+
+    const monthTotal = monthAllowances.reduce((sum, i) => sum + i.amount, 0)
+
+    if (!confirm(`${selectedDate.getMonth()+1}月分の手当（${monthAllowances.length}件、合計¥${monthTotal.toLocaleString()}）を確定して申請しますか？\n\n※申請すると、承認されるまで手当の修正ができなくなります。`)) return
+    
     const ym = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-    const { error } = await supabase.from('monthly_applications').upsert({ 
-      user_id: userId, 
+    
+    console.log('申請データ:', {
+      user_id: userId,
+      user_email: userEmail,
+      year_month: ym,
+      application_type: 'allowance',
+      status: 'submitted',
+      submitted_at: new Date().toISOString()
+    })
+
+    const { data, error } = await supabase.from('monthly_applications').upsert({ 
+      user_id: userId,
+      user_email: userEmail,
       year_month: ym, 
       application_type: 'allowance', 
       status: 'submitted', 
       submitted_at: new Date().toISOString() 
     })
-    if (error) alert('申請エラー: ' + error.message)
-    else { 
-      alert('手当を申請しました！')
+    
+    if (error) { 
+      console.error('申請エラー:', error)
+      alert('申請エラー: ' + error.message)
+    } else { 
+      console.log('申請成功:', data)
+      await fetchApplicationStatus(userId, selectedDate)
+      alert(`手当を申請しました！\n\n${selectedDate.getMonth()+1}月分（${monthAllowances.length}件、¥${monthTotal.toLocaleString()}）`)
       setAllowanceStatus('submitted')
     }
   }
