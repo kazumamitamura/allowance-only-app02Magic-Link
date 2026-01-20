@@ -213,12 +213,13 @@ export default function Home() {
     console.log('対象月の手当件数:', monthAllowances.length)
     console.log('対象月の手当詳細:', monthAllowances)
 
-    // 合計金額
+    // 合計金額（数値型に変換して計算）
     const total = monthAllowances.reduce((sum, i) => {
-      console.log('加算:', sum, '+', i.amount, '=', sum + i.amount)
-      return sum + i.amount
+      const amount = typeof i.amount === 'string' ? parseInt(i.amount, 10) : (i.amount || 0)
+      console.log('加算:', sum, '+', amount, '=', sum + amount)
+      return sum + amount
     }, 0)
-    console.log('計算された合計金額:', total)
+    console.log('計算された合計金額:', total, '（型:', typeof total, '）')
     setMonthTotal(total)
 
     // 合宿日数（activity_typeに「合宿」を含む、またはcodeが'F'）
@@ -262,8 +263,16 @@ export default function Home() {
         if (allowData && allowData.length > 0) {
           console.log('取得したデータサンプル:', allowData[0])
           console.log('全データ:', allowData)
+          
+          // amountを数値型に変換（文字列で保存されている場合の対策）
+          const normalizedData = allowData.map(item => ({
+            ...item,
+            amount: typeof item.amount === 'string' ? parseInt(item.amount, 10) : item.amount
+          }))
+          setAllowances(normalizedData)
+        } else {
+          setAllowances(allowData || [])
         }
-        setAllowances(allowData || [])
       }
     } catch (err) {
       console.error('手当データ取得中の予期しないエラー:', err)
