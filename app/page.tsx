@@ -81,7 +81,7 @@ export default function Home() {
       if (ADMIN_EMAILS.includes(user.email?.toLowerCase() || '')) setIsAdmin(true)
       
       // プロフィール取得
-      fetchProfile(user.email || '')
+      fetchProfile(user.id)
 
       fetchData(user.id)
       fetchSchoolCalendar()
@@ -93,10 +93,25 @@ export default function Home() {
   }, [])
 
   // 氏名取得
-  const fetchProfile = async (email: string) => {
-      const { data } = await supabase.from('user_profiles').select('full_name').eq('email', email).single()
-      if (data?.full_name) {
-          setUserName(data.full_name)
+  const fetchProfile = async (uid: string) => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('user_id', uid)
+        .single()
+      
+      if (error) {
+        console.error('プロフィール取得エラー:', error)
+        // display_nameカラムが存在しない場合のフォールバック処理
+        setShowProfileModal(true) // 氏名登録モーダルを表示
+        return
+      }
+      
+      if (data?.display_name) {
+        setUserName(data.display_name)
+      } else {
+        // 氏名が未登録の場合
+        setShowProfileModal(true)
       }
   }
 
@@ -108,14 +123,11 @@ export default function Home() {
       }
       const fullName = `${inputLastName.trim()} ${inputFirstName.trim()}`
       
-      // user_id と email の両方を含めてupsert
-      const { error } = await supabase.from('user_profiles').upsert({
-          user_id: userId,      // user_id を含める（主キー）
-          email: userEmail,     // email も含める
-          full_name: fullName
-      }, {
-          onConflict: 'user_id'  // user_id で競合判定
-      })
+      // user_id をキーにして display_name を更新
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ display_name: fullName })
+        .eq('user_id', userId)
 
       if (error) {
           console.error('氏名登録エラー:', error)
@@ -124,6 +136,8 @@ export default function Home() {
           console.log('氏名登録成功:', fullName)
           setUserName(fullName)
           setShowProfileModal(false)
+          setInputLastName('')
+          setInputFirstName('')
           alert('氏名を登録しました！')
       }
   }

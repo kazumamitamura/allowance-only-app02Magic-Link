@@ -79,18 +79,34 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* 氏名（新規登録時のみ） */}
             {isSignUp && (
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  氏名（フルネーム）
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  placeholder="例: 羽黒 太郎"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition font-bold text-gray-900"
-                  disabled={isPending}
-                />
-                <p className="text-xs text-gray-600 mt-1">帳票出力に使用されます</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                    姓（Last Name）
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder="例: 三田村"
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition font-bold text-gray-900"
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                    名（First Name）
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    placeholder="例: 和真"
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition font-bold text-gray-900"
+                    disabled={isPending}
+                  />
+                </div>
+                <p className="col-span-2 text-xs text-gray-600 mt-1">帳票出力に使用されます</p>
               </div>
             )}
 

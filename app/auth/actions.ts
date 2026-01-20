@@ -30,7 +30,8 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const fullName = formData.get('fullName') as string
+  const lastName = formData.get('lastName') as string
+  const firstName = formData.get('firstName') as string
 
   // バリデーション
   if (!email || !password) {
@@ -45,9 +46,11 @@ export async function signup(formData: FormData) {
     return { error: 'パスワードは6文字以上で入力してください' }
   }
 
-  if (!fullName || fullName.trim().length === 0) {
-    return { error: '氏名を入力してください' }
+  if (!lastName || !firstName || lastName.trim().length === 0 || firstName.trim().length === 0) {
+    return { error: '姓と名の両方を入力してください' }
   }
+
+  const fullName = `${lastName.trim()} ${firstName.trim()}`
 
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
@@ -79,6 +82,10 @@ export async function signup(formData: FormData) {
       if (!loginError) {
         // ログイン成功！プロフィールを更新してリダイレクト
         console.log('自動ログイン成功')
+        
+        // セッションが確立されるまで少し待つ
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
         redirect('/')
       } else {
         // パスワードが違う場合
@@ -100,17 +107,17 @@ export async function signup(formData: FormData) {
   // ユーザー登録成功後、プロフィールをupsert（user_idをキーに）
   if (data.user) {
     try {
-      console.log('プロフィール作成:', data.user.id, email, fullName.trim())
+      console.log('プロフィール作成:', data.user.id, email, fullName)
       
       // user_id をキーとしてupsert（重複時は上書き更新）
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
-          user_id: data.user.id,  // user_id を含める
-          email: email,           // email を含める
-          full_name: fullName.trim(),
+          user_id: data.user.id,
+          email: email,
+          display_name: fullName,  // display_name カラムを使用
         }, {
-          onConflict: 'user_id'  // user_id をユニーク制約として扱う
+          onConflict: 'user_id'
         })
 
       if (profileError) {
@@ -124,6 +131,9 @@ export async function signup(formData: FormData) {
       // エラーでもログインは成功しているので続行
     }
   }
+
+  // セッションが確立されるまで少し待つ
+  await new Promise(resolve => setTimeout(resolve, 500))
 
   // 登録成功、確実にリダイレクト
   redirect('/')
