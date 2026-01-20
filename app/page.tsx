@@ -10,7 +10,22 @@ import { logout } from './auth/actions'
 
 const ADMIN_EMAILS = ['mitamuraka@haguroko.ed.jp', 'tomonoem@haguroko.ed.jp'].map(e => e.toLowerCase())
 
-type Allowance = { id: number, user_id: string, date: string, activity_type: string, amount: number, destination_type: string, destination_detail: string, is_driving: boolean, is_accommodation: boolean, custom_amount?: number, custom_description?: string }
+type Allowance = { 
+  id: number
+  user_id: string
+  user_email?: string
+  date: string
+  activity_type: string
+  amount: number
+  destination_type?: string | null
+  destination_detail?: string | null
+  is_driving: boolean
+  is_accommodation: boolean
+  custom_amount?: number | null
+  custom_description?: string | null
+  created_at?: string
+  updated_at?: string
+}
 type SchoolCalendar = { date: string, day_type: string }
 type AnnualSchedule = { date: string, work_type: string, event_name: string }
 type AllowanceType = { id: number, code: string, display_name: string, base_amount: number, requires_holiday: boolean }
@@ -203,40 +218,86 @@ export default function Home() {
 
   const fetchData = async (uid: string) => {
     console.log('手当データ取得中:', uid)
-    const { data: allowData, error } = await supabase
-      .from('allowances')
-      .select('*')
-      .eq('user_id', uid)
-      .order('date', { ascending: false })
-    
-    if (error) {
-      console.error('手当データ取得エラー:', error)
-    } else {
-      console.log('手当データ取得成功:', allowData?.length, '件')
-      setAllowances(allowData || [])
+    try {
+      const { data: allowData, error } = await supabase
+        .from('allowances')
+        .select('*')
+        .eq('user_id', uid)
+        .order('date', { ascending: false })
+      
+      if (error) {
+        console.error('手当データ取得エラー:', error)
+        setAllowances([])
+      } else {
+        console.log('手当データ取得成功:', allowData?.length, '件')
+        setAllowances(allowData || [])
+      }
+    } catch (err) {
+      console.error('手当データ取得中の予期しないエラー:', err)
+      setAllowances([])
     }
   }
 
   const fetchSchoolCalendar = async () => {
-    const { data } = await supabase.from('school_calendar').select('*')
-    setSchoolCalendar(data || [])
+    try {
+      const { data, error } = await supabase.from('school_calendar').select('*')
+      if (error) {
+        console.error('学校カレンダー取得エラー:', error)
+        setSchoolCalendar([])
+      } else {
+        setSchoolCalendar(data || [])
+      }
+    } catch (err) {
+      console.error('学校カレンダー取得中の予期しないエラー:', err)
+      setSchoolCalendar([])
+    }
   }
 
   const fetchAnnualSchedules = async () => {
-    const { data } = await supabase.from('annual_schedules').select('*')
-    setAnnualSchedules(data || [])
+    try {
+      const { data, error } = await supabase.from('annual_schedules').select('*')
+      if (error) {
+        console.error('年間予定取得エラー:', error)
+        setAnnualSchedules([])
+      } else {
+        setAnnualSchedules(data || [])
+      }
+    } catch (err) {
+      console.error('年間予定取得中の予期しないエラー:', err)
+      setAnnualSchedules([])
+    }
   }
 
   const fetchAllowanceTypes = async () => {
-    const { data } = await supabase.from('allowance_types').select('*').order('code')
-    setAllowanceTypes(data || [])
+    try {
+      const { data, error } = await supabase.from('allowance_types').select('*').order('code')
+      if (error) {
+        console.error('手当種別取得エラー:', error)
+        setAllowanceTypes([])
+      } else {
+        setAllowanceTypes(data || [])
+      }
+    } catch (err) {
+      console.error('手当種別取得中の予期しないエラー:', err)
+      setAllowanceTypes([])
+    }
   }
 
   const fetchApplicationStatus = async (uid: string, date: Date) => {
-    const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const { data } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
-    const allow = data?.find(d => d.application_type === 'allowance')
-    setAllowanceStatus(allow?.status || 'draft')
+    try {
+      const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const { data, error } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
+      if (error) {
+        console.error('申請状態取得エラー:', error)
+        setAllowanceStatus('draft')
+      } else {
+        const allow = data?.find(d => d.application_type === 'allowance')
+        setAllowanceStatus(allow?.status || 'draft')
+      }
+    } catch (err) {
+      console.error('申請状態取得中の予期しないエラー:', err)
+      setAllowanceStatus('draft')
+    }
   }
 
   useEffect(() => {
@@ -251,7 +312,7 @@ export default function Home() {
         setActivityId(allowance.activity_type === allowance.activity_type ? (ACTIVITY_TYPES.find(t => t.label === allowance.activity_type)?.id || allowance.activity_type) : '')
         
         // 古いIDを新しいIDにマッピング（後方互換性）
-        let mappedDestinationId = DESTINATIONS.find(d => d.label === allowance.destination_type)?.id || 'inside_short'
+        let mappedDestinationId = DESTINATIONS.find(d => d.label === (allowance.destination_type || ''))?.id || 'inside_short'
         const idMapping: Record<string, string> = {
           'kannai': 'inside_short',
           'kennai_short': 'inside_short',
@@ -264,11 +325,11 @@ export default function Home() {
         
         setDestinationId(mappedDestinationId)
         setDestinationDetail(allowance.destination_detail || '')
-        setIsDriving(allowance.is_driving)
-        setIsAccommodation(allowance.is_accommodation)
+        setIsDriving(allowance.is_driving || false)
+        setIsAccommodation(allowance.is_accommodation || false)
         // custom_amount と custom_description は、カラムが存在する場合のみ使用
-        setCustomAmount((allowance as any).custom_amount || 0)
-        setCustomDescription((allowance as any).custom_description || '')
+        setCustomAmount(allowance.custom_amount || 0)
+        setCustomDescription(allowance.custom_description || '')
       } else {
         setActivityId('')
         setDestinationId('inside_short')
