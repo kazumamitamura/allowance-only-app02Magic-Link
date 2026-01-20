@@ -36,8 +36,23 @@ export default function ExportPage() {
   }, [])
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('user_profiles').select('*').order('display_name')
-    setUsers(data || [])
+    console.log('ユーザープロフィール取得中...')
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .order('display_name', { ascending: true, nullsFirst: false })
+    
+    if (error) {
+      console.error('ユーザープロフィール取得エラー:', error)
+    } else {
+      console.log('ユーザープロフィール取得成功:', data)
+    }
+    // display_nameが空のユーザーには警告を付ける
+    const usersWithWarning = (data || []).map(user => ({
+      ...user,
+      displayLabel: user.display_name || `${user.email} (⚠️氏名未登録)`
+    }))
+    setUsers(usersWithWarning)
   }
 
   // 個人月次レポート（帳票形式 - aoa_to_sheet使用）
@@ -406,8 +421,8 @@ export default function ExportPage() {
               >
                 <option value="">選択してください</option>
                 {users.map(user => (
-                  <option key={user.email} value={user.email}>
-                    {user.display_name || user.email}
+                  <option key={user.user_id} value={user.user_id}>
+                    {user.display_name || `${user.email} (⚠️氏名未登録)`}
                   </option>
                 ))}
               </select>
@@ -456,7 +471,7 @@ export default function ExportPage() {
               選択した職員の指定月の手当明細を出力
             </p>
             <div className="text-xs text-slate-400">
-              {selectedUser ? users.find(u => u.email === selectedUser)?.display_name : '職員未選択'} / {selectedYear}年{selectedMonth}月
+              {selectedUser ? (users.find(u => u.user_id === selectedUser || u.email === selectedUser)?.display_name || '氏名未登録') : '職員未選択'} / {selectedYear}年{selectedMonth}月
             </div>
           </button>
 
@@ -474,7 +489,7 @@ export default function ExportPage() {
               選択した職員の年間手当を月別集計
             </p>
             <div className="text-xs text-slate-400">
-              {selectedUser ? users.find(u => u.email === selectedUser)?.full_name : '職員未選択'} / {selectedYear}年
+              {selectedUser ? (users.find(u => u.user_id === selectedUser || u.email === selectedUser)?.display_name || '氏名未登録') : '職員未選択'} / {selectedYear}年
             </div>
           </button>
 

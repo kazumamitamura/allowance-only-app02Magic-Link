@@ -31,6 +31,7 @@ export default function AllowancePreviewPage() {
   const [loading, setLoading] = useState(true)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedUser, setSelectedUser] = useState<string>('') // 個別ユーザー選択
   const [allowances, setAllowances] = useState<AllowanceData[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [viewMode, setViewMode] = useState<'user' | 'date'>('user') // ユーザー別 or 日付別
@@ -63,7 +64,7 @@ export default function AllowancePreviewPage() {
     if (isAuthorized) {
       fetchData()
     }
-  }, [selectedYear, selectedMonth, isAuthorized])
+  }, [selectedYear, selectedMonth, selectedUser, isAuthorized])
 
   const fetchUsers = async () => {
     const { data } = await supabase
@@ -81,12 +82,18 @@ export default function AllowancePreviewPage() {
     setLoading(true)
     const yearMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('allowances')
       .select('*')
       .gte('date', `${yearMonth}-01`)
       .lte('date', `${yearMonth}-31`)
-      .order('date', { ascending: true })
+    
+    // 個別ユーザーが選択されている場合はフィルター
+    if (selectedUser) {
+      query = query.eq('user_id', selectedUser)
+    }
+    
+    const { data, error } = await query.order('date', { ascending: true })
     
     if (error) {
       console.error('データ取得エラー:', error)
@@ -104,16 +111,26 @@ export default function AllowancePreviewPage() {
     // ユーザーごとにグループ化
     const userMap = new Map<string, { profile: UserProfile | null, allowances: AllowanceData[] }>()
     
-    // 全ユーザーを初期化
-    users.forEach(user => {
-      userMap.set(user.user_id, { profile: user, allowances: [] })
-    })
+    // 個別ユーザーが選択されている場合
+    if (selectedUser) {
+      const user = users.find(u => u.user_id === selectedUser)
+      if (user) {
+        userMap.set(user.user_id, { profile: user, allowances: [] })
+      }
+    } else {
+      // 全ユーザーを初期化
+      users.forEach(user => {
+        userMap.set(user.user_id, { profile: user, allowances: [] })
+      })
+    }
     
     // 手当データを振り分け
     allowances.forEach(allowance => {
       if (!userMap.has(allowance.user_id)) {
+        // プロフィールが見つからない場合でも表示
+        const matchingUser = users.find(u => u.user_id === allowance.user_id)
         userMap.set(allowance.user_id, {
-          profile: null,
+          profile: matchingUser || null,
           allowances: []
         })
       }
@@ -124,7 +141,8 @@ export default function AllowancePreviewPage() {
       <div className="space-y-6">
         {Array.from(userMap.entries()).map(([userId, { profile, allowances: userAllowances }]) => {
           const total = userAllowances.reduce((sum, a) => sum + a.amount, 0)
-          const displayName = profile?.display_name || profile?.email || userId
+          const displayName = profile?.display_name || profile?.email || 'ユーザー名未登録'
+          const displayEmail = profile?.email || ''
           
           return (
             <div key={userId} className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -133,7 +151,12 @@ export default function AllowancePreviewPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-xl font-bold">{displayName}</h3>
-                    {profile?.email && <p className="text-sm opacity-90">{profile.email}</p>}
+                    {displayEmail && <p className="text-sm opacity-90">{displayEmail}</p>}
+                    {!profile?.display_name && (
+                      <p className="text-xs opacity-75 mt-1 bg-yellow-500/30 px-2 py-1 rounded inline-block">
+                        ⚠️ 氏名未登録
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm opacity-90">合計金額</p>
@@ -330,6 +353,23 @@ export default function AllowancePreviewPage() {
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                   <option key={month} value={month}>{month}月</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 個別ユーザー選択 */}
+            <div className="flex gap-2 items-center">
+              <label className="font-bold text-gray-900">職員:</label>
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-300 rounded-lg font-bold text-gray-900 focus:border-blue-500 focus:outline-none min-w-[200px]"
+              >
+                <option value="">全職員</option>
+                {users.map(user => (
+                  <option key={user.user_id} value={user.user_id}>
+                    {user.display_name || user.email || 'ユーザー名未登録'}
+                  </option>
                 ))}
               </select>
             </div>
