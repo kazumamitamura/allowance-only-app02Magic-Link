@@ -32,39 +32,74 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
 
+  // バリデーション
   if (!email || !password) {
     return { error: 'メールアドレスとパスワードを入力してください' }
+  }
+
+  if (!email.includes('@')) {
+    return { error: 'メールアドレスの形式が正しくありません' }
   }
 
   if (password.length < 6) {
     return { error: 'パスワードは6文字以上で入力してください' }
   }
 
+  if (!fullName || fullName.trim().length === 0) {
+    return { error: '氏名を入力してください' }
+  }
+
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
+  // Supabase認証での新規登録
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: fullName || '',
+        full_name: fullName.trim(),
       },
     },
   })
 
   if (error) {
-    return { error: '登録に失敗しました。すでに登録済みのメールアドレスの可能性があります。' }
+    // 詳細なエラーメッセージ
+    console.error('サインアップエラー:', error)
+    
+    if (error.message.includes('already registered')) {
+      return { error: 'このメールアドレスはすでに登録されています。ログインしてください。' }
+    }
+    if (error.message.includes('Password')) {
+      return { error: 'パスワードが要件を満たしていません。6文字以上で入力してください。' }
+    }
+    if (error.message.includes('Email')) {
+      return { error: 'メールアドレスの形式が正しくありません。' }
+    }
+    
+    return { error: `登録に失敗しました: ${error.message}` }
   }
 
-  // メール確認がOFFの場合、すぐにログイン状態になる
+  // ユーザー登録成功後、プロフィールをupsert（トリガーで作成済みでも上書き）
   if (data.user) {
-    // user_profilesの作成（念のため）
-    if (fullName) {
-      await supabase.from('user_profiles').upsert({
-        email,
-        full_name: fullName,
-      })
+    try {
+      // email をキーとしてupsert（重複時は上書き更新）
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          email: email,
+          full_name: fullName.trim(),
+        }, {
+          onConflict: 'email'  // emailカラムをユニーク制約として扱う
+        })
+
+      if (profileError) {
+        console.error('プロフィール作成エラー:', profileError)
+        // プロフィール作成失敗でもログインは成功しているので続行
+      }
+    } catch (err) {
+      console.error('プロフィールupsert例外:', err)
+      // エラーでもログインは成功しているので続行
     }
   }
 
