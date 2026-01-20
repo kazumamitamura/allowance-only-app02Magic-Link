@@ -99,11 +99,16 @@ export default function Home() {
 
   // 氏名取得
   const fetchProfile = async (uid: string) => {
+      console.log('プロフィール取得開始:', uid)
+      
+      // まず全カラムを取得してデバッグ
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('display_name')
+        .select('*')
         .eq('user_id', uid)
         .single()
+      
+      console.log('プロフィール取得結果:', { data, error })
       
       if (error) {
         console.error('プロフィール取得エラー:', error)
@@ -112,10 +117,15 @@ export default function Home() {
         return
       }
       
-      if (data?.display_name) {
-        setUserName(data.display_name)
+      // display_name と full_name の両方をチェック
+      const name = data?.display_name || data?.full_name || ''
+      console.log('取得した氏名:', name)
+      
+      if (name) {
+        setUserName(name)
       } else {
         // 氏名が未登録の場合
+        console.warn('氏名が未登録です')
         setShowProfileModal(true)
       }
   }
@@ -128,11 +138,19 @@ export default function Home() {
       }
       const fullName = `${inputLastName.trim()} ${inputFirstName.trim()}`
       
-      // user_id をキーにして display_name を更新
-      const { error } = await supabase
+      console.log('氏名保存開始:', { userId, fullName })
+      
+      // display_name と full_name の両方を更新（互換性のため）
+      const { data, error } = await supabase
         .from('user_profiles')
-        .update({ display_name: fullName })
+        .update({ 
+          display_name: fullName,
+          full_name: fullName  // full_name カラムも更新
+        })
         .eq('user_id', userId)
+        .select()
+
+      console.log('氏名保存結果:', { data, error })
 
       if (error) {
           console.error('氏名登録エラー:', error)
@@ -143,7 +161,9 @@ export default function Home() {
           setShowProfileModal(false)
           setInputLastName('')
           setInputFirstName('')
-          alert('氏名を登録しました！')
+          alert('氏名を登録しました！\n\nページをリロードして最新の情報を表示します。')
+          // ページをリロード
+          window.location.reload()
       }
   }
 
