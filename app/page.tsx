@@ -60,7 +60,7 @@ export default function Home() {
   const [monthTotal, setMonthTotal] = useState(0)
   const [campDays, setCampDays] = useState(0)
   const [expeditionDays, setExpeditionDays] = useState(0)
-  
+
   // 氏名登録モーダル用
   const [showProfileModal, setShowProfileModal] = useState(false)
   
@@ -118,7 +118,7 @@ export default function Home() {
         fetchSchoolCalendar(),
         fetchAnnualSchedules(),
         fetchAllowanceTypes(),
-        fetchApplicationStatus(user.id, selectedDate)
+      fetchApplicationStatus(user.id, selectedDate)
       ])
       
       console.log('=== 初期化完了 ===')
@@ -174,7 +174,7 @@ export default function Home() {
         .from('user_profiles')
         .update({ 
           display_name: fullName
-        })
+      })
         .eq('user_id', userId)
         .select()
 
@@ -251,14 +251,14 @@ export default function Home() {
     try {
       const { data: allowData, error } = await supabase
         .from('allowances')
-        .select('*')
-        .eq('user_id', uid)
+      .select('*')
+      .eq('user_id', uid)
         .order('date', { ascending: false })
-      
+    
       if (error) {
         console.error('手当データ取得エラー:', error)
         setAllowances([])
-      } else {
+    } else {
         console.log('手当データ取得成功:', allowData?.length, '件')
         if (allowData && allowData.length > 0) {
           console.log('取得したデータサンプル:', allowData[0])
@@ -289,7 +289,7 @@ export default function Home() {
         setSchoolCalendar([])
       } else {
         setSchoolCalendar(data || [])
-      }
+  }
     } catch (err) {
       console.error('学校カレンダー取得中の予期しないエラー:', err)
       setSchoolCalendar([])
@@ -328,14 +328,14 @@ export default function Home() {
 
   const fetchApplicationStatus = async (uid: string, date: Date) => {
     try {
-      const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const { data, error } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
       if (error) {
         console.error('申請状態取得エラー:', error)
         setAllowanceStatus('draft')
       } else {
-        const allow = data?.find(d => d.application_type === 'allowance')
-        setAllowanceStatus(allow?.status || 'draft')
+    const allow = data?.find(d => d.application_type === 'allowance')
+    setAllowanceStatus(allow?.status || 'draft')
       }
     } catch (err) {
       console.error('申請状態取得中の予期しないエラー:', err)
@@ -433,14 +433,14 @@ export default function Home() {
       alert('手当が申請済みのため、編集できません。')
       return 
     }
-    const dateStr = formatDate(selectedDate)
+      const dateStr = formatDate(selectedDate)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       console.error('ユーザー情報が取得できません')
       alert('ユーザー情報が取得できません。再ログインしてください。')
-      return
-    }
-
+          return
+      }
+      
     console.log('保存するユーザー:', {
       user_id: user.id,
       email: user.email,
@@ -453,8 +453,8 @@ export default function Home() {
         if (!customDescription || customAmount <= 0) {
           alert('手入力その他を選択した場合、内容と金額を必ず入力してください。')
           return
-        }
       }
+  }
 
       // 既存データを削除
       const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
@@ -493,7 +493,7 @@ export default function Home() {
       }
       
       console.log('挿入成功:', insertedData)
-    } else {
+        } else {
       // 手当なしの場合は削除のみ
       const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
       if (deleteError) {
@@ -599,7 +599,7 @@ export default function Home() {
     if (allowance) {
       bgClass = 'bg-white' // 入力済みの日（白背景）
       borderClass = 'border-2 border-gray-300'
-    }
+    } 
     
     if (isToday) {
       borderClass = 'border-2 border-blue-500' // 今日（青い枠線）
@@ -617,7 +617,7 @@ export default function Home() {
             {/* 日付番号（今日は青い丸で強調） */}
             <div className={`text-xs font-bold mb-1 ${isToday ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center' : 'text-gray-900'}`}>
                 {date.getDate()}
-            </div>
+                </div>
             
             {/* 手当金額（入力済みの場合のみ表示） */}
             {allowance && (
@@ -697,10 +697,10 @@ export default function Home() {
               <div className="flex gap-2 w-full sm:w-auto">
                 <button onClick={() => setShowProfileModal(true)} className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation flex-1 sm:flex-none whitespace-nowrap">
                     {userName ? `👤 ${userName.length > 6 ? userName.substring(0, 6) + '...' : userName}` : '⚙️ 氏名登録'}
-                </button>
+              </button>
                 <button onClick={handleLogout} className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation">ログアウト</button>
-              </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -766,7 +766,7 @@ export default function Home() {
               <form onSubmit={handleSave} className={`flex flex-col gap-4 sm:gap-4 ${isAllowLocked ? 'opacity-60 pointer-events-none' : ''}`}>
             
             {/* 手当エリア */}
-            <div>
+                <div>
                 <div>
                 <label className="block text-sm sm:text-base font-bold text-black mb-2">部活動 業務内容 {isAllowLocked && '(編集不可)'}</label>
                 <select 

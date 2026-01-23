@@ -12,6 +12,7 @@ type AllowanceData = {
   date: string
   activity_type: string
   amount: number
+  destination_type: string | null
   destination_detail: string
   is_driving: boolean
   is_accommodation: boolean
@@ -178,6 +179,7 @@ export default function AllowancePreviewPage() {
                         <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">業務内容</th>
                         <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">宿泊</th>
                         <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">運転</th>
+                        <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">行き先（区分）</th>
                         <th className="px-4 py-3 text-right text-sm font-bold text-gray-700">金額</th>
                       </tr>
                     </thead>
@@ -198,6 +200,13 @@ export default function AllowancePreviewPage() {
                             <td className="px-4 py-3 text-center">
                               {allowance.is_driving && <span className="text-green-600">○</span>}
                             </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {allowance.is_driving && allowance.destination_type ? (
+                                <span className="font-medium text-gray-900">{allowance.destination_type}</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">
                               ¥{allowance.amount.toLocaleString()}
                             </td>
@@ -207,7 +216,7 @@ export default function AllowancePreviewPage() {
                     </tbody>
                     <tfoot>
                       <tr className="bg-blue-50 font-bold">
-                        <td colSpan={6} className="px-4 py-3 text-right text-gray-900">合計</td>
+                        <td colSpan={7} className="px-4 py-3 text-right text-gray-900">合計</td>
                         <td className="px-4 py-3 text-right text-blue-900 text-lg">
                           ¥{total.toLocaleString()}
                         </td>
@@ -255,6 +264,7 @@ export default function AllowancePreviewPage() {
                 <th className="px-4 py-3 text-left font-bold">業務内容</th>
                 <th className="px-4 py-3 text-center font-bold">宿泊</th>
                 <th className="px-4 py-3 text-center font-bold">運転</th>
+                <th className="px-4 py-3 text-left font-bold">行き先（区分）</th>
                 <th className="px-4 py-3 text-right font-bold">金額</th>
               </tr>
             </thead>
@@ -289,6 +299,13 @@ export default function AllowancePreviewPage() {
                       <td className="px-4 py-3 text-center">
                         {allowance.is_driving && <span className="text-green-600">○</span>}
                       </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {allowance.is_driving && allowance.destination_type ? (
+                          <span className="font-medium text-gray-900">{allowance.destination_type}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">
                         ¥{allowance.amount.toLocaleString()}
                       </td>
@@ -299,7 +316,7 @@ export default function AllowancePreviewPage() {
             </tbody>
             <tfoot>
               <tr className="bg-blue-50 font-bold">
-                <td colSpan={7} className="px-4 py-3 text-right text-gray-900">合計</td>
+                <td colSpan={8} className="px-4 py-3 text-right text-gray-900">合計</td>
                 <td className="px-4 py-3 text-right text-blue-900 text-lg">
                   ¥{allowances.reduce((sum, a) => sum + a.amount, 0).toLocaleString()}
                 </td>
