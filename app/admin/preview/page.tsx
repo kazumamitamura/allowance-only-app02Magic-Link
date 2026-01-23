@@ -101,6 +101,12 @@ export default function AllowancePreviewPage() {
       alert('データの取得に失敗しました: ' + error.message)
     } else {
       console.log('手当データ:', data)
+      // destination_type のデバッグ
+      if (data && data.length > 0) {
+        console.log('サンプルデータ:', data[0])
+        console.log('destination_type サンプル:', data[0]?.destination_type)
+        console.log('is_driving サンプル:', data[0]?.is_driving)
+      }
       setAllowances(data || [])
     }
     
@@ -188,6 +194,12 @@ export default function AllowancePreviewPage() {
                         const date = new Date(allowance.date)
                         const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()]
                         
+                        // destination_type の表示判定
+                        const hasDestination = allowance.is_driving && 
+                          allowance.destination_type && 
+                          String(allowance.destination_type).trim() !== '' &&
+                          allowance.destination_type !== 'null'
+                        
                         return (
                           <tr key={allowance.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-4 py-3 text-sm text-gray-900">{allowance.date}</td>
@@ -201,8 +213,8 @@ export default function AllowancePreviewPage() {
                               {allowance.is_driving && <span className="text-green-600">○</span>}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-700">
-                              {allowance.is_driving && allowance.destination_type ? (
-                                <span className="font-medium text-gray-900">{allowance.destination_type}</span>
+                              {hasDestination ? (
+                                <span className="font-medium text-gray-900">{String(allowance.destination_type)}</span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}
@@ -278,6 +290,12 @@ export default function AllowancePreviewPage() {
                   const user = users.find(u => u.user_id === allowance.user_id)
                   const displayName = user?.display_name || user?.email || allowance.user_email
                   
+                  // destination_type の表示判定
+                  const hasDestination = allowance.is_driving && 
+                    allowance.destination_type && 
+                    String(allowance.destination_type).trim() !== '' &&
+                    allowance.destination_type !== 'null'
+                  
                   return (
                     <tr key={allowance.id} className="border-b border-gray-200 hover:bg-gray-50">
                       {index === 0 && (
@@ -300,8 +318,8 @@ export default function AllowancePreviewPage() {
                         {allowance.is_driving && <span className="text-green-600">○</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {allowance.is_driving && allowance.destination_type ? (
-                          <span className="font-medium text-gray-900">{allowance.destination_type}</span>
+                        {hasDestination ? (
+                          <span className="font-medium text-gray-900">{String(allowance.destination_type)}</span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
