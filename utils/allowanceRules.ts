@@ -7,9 +7,8 @@ export const ACTIVITY_TYPES = [
     { id: 'C', label: 'C:指定大会（対外運動競技等引率）', requiresHoliday: false },
     { id: 'D', label: 'D:指定外大会', requiresHoliday: false },
     { id: 'E', label: 'E:遠征（部活動指導）', requiresHoliday: false },
-    { id: 'F', label: 'F:合宿（部活動指導）', requiresHoliday: false },
+    { id: 'F', label: 'F:校内合宿（宿泊を伴う指導）', requiresHoliday: false },
     { id: 'G', label: 'G:研修旅行等引率', requiresHoliday: false },
-    { id: 'H', label: 'H:宿泊指導', requiresHoliday: false },
     { id: 'DISASTER', label: '災害業務', requiresHoliday: false },
     { id: 'CUSTOM', label: 'その他（手入力）', requiresHoliday: false },
   ]
@@ -58,20 +57,28 @@ export const calculateAmountFromMaster = (
         
         // 県外への運転: 15,000円（活動タイプに関係なく）
         if (destinationId === 'outside') {
-            const drivingAmount = 15000
-            // E, Fで宿泊ありの場合のみ加算
-            return isAccommodation && (activityId === 'E' || activityId === 'F') 
-                ? drivingAmount + (baseAmount > 0 ? baseAmount : 2400) 
-                : drivingAmount
+            // 遠征（E）の場合は運転手当のみ、休日手当を含まない
+            // 平日の場合は2,400円を引く
+            if (activityId === 'E') {
+                return isWorkDay ? 15000 - 2400 : 15000
+            }
+            // 合宿（F）で宿泊ありの場合のみ加算
+            return isAccommodation && activityId === 'F' 
+                ? 15000 + (baseAmount > 0 ? baseAmount : 2400) 
+                : 15000
         }
         
         // 県内120km以上への運転: 7,500円（活動タイプに関係なく）
         if (destinationId === 'inside_long') {
-            const drivingAmount = 7500
-            // E, Fで宿泊ありの場合のみ加算
-            return isAccommodation && (activityId === 'E' || activityId === 'F') 
-                ? drivingAmount + (baseAmount > 0 ? baseAmount : 2400) 
-                : drivingAmount
+            // 遠征（E）の場合は運転手当のみ、休日手当を含まない
+            // 平日の場合は2,400円を引く
+            if (activityId === 'E') {
+                return isWorkDay ? 7500 - 2400 : 7500
+            }
+            // 合宿（F）で宿泊ありの場合のみ加算
+            return isAccommodation && activityId === 'F' 
+                ? 7500 + (baseAmount > 0 ? baseAmount : 2400) 
+                : 7500
         }
         
         // 管内または校内への運転
@@ -81,8 +88,19 @@ export const calculateAmountFromMaster = (
                 return baseAmount > 0 ? baseAmount : 3400
             }
             
-            // E, F. 遠征・合宿の場合: 勤務日は5100円
-            if (activityId === 'E' || activityId === 'F') {
+            // E. 遠征の場合: 平日は運転手当から2,400円を引く、休日は2,400円のみ
+            if (activityId === 'E') {
+                if (isWorkDay) {
+                    // 平日: 管内運転5,100円 - 2,400円 = 2,700円
+                    return 2700
+                } else {
+                    // 休日: 2,400円のみ（運転手当を含む）
+                    return 2400
+                }
+            }
+            
+            // F. 合宿の場合: 勤務日は5100円（校内合宿なので運転なし）
+            if (activityId === 'F') {
                 if (isWorkDay) {
                     const insideDrivingAmount = 5100
                     return isAccommodation 
@@ -135,11 +153,6 @@ export const calculateAmountFromMaster = (
         return gAmount > 0 ? gAmount : 3400 // フォールバック
     }
 
-    if (activityId === 'H') {
-        const hAmount = getMasterAmount('H')
-        return hAmount > 0 ? hAmount : 2400 // フォールバック
-    }
-
     return 0
 }
 
@@ -167,8 +180,12 @@ export const calculateAmount = (
     if (isDriving) {
         // 県外への運転は一律 15,000円（活動タイプに関係なく）
         if (destinationId === 'outside') {
-            // 宿泊がある場合は加算
-            if (isAccommodation && (activityId === 'E' || activityId === 'F')) {
+            // 遠征（E）の場合は運転手当のみ、平日は2,400円を引く
+            if (activityId === 'E') {
+                return isWorkDay ? 15000 - 2400 : 15000
+            }
+            // 合宿（F）で宿泊がある場合のみ加算
+            if (isAccommodation && activityId === 'F') {
                 return 15000 + 2400
             }
             return 15000
@@ -176,8 +193,12 @@ export const calculateAmount = (
         
         // 県内（120km以上）への運転は一律 7,500円
         if (destinationId === 'inside_long') {
-            // 宿泊がある場合は加算
-            if (isAccommodation && (activityId === 'E' || activityId === 'F')) {
+            // 遠征（E）の場合は運転手当のみ、平日は2,400円を引く
+            if (activityId === 'E') {
+                return isWorkDay ? 7500 - 2400 : 7500
+            }
+            // 合宿（F）で宿泊がある場合のみ加算
+            if (isAccommodation && activityId === 'F') {
                 return 7500 + 2400
             }
             return 7500
@@ -190,8 +211,19 @@ export const calculateAmount = (
                 return 3400
             }
             
-            // E, F. 遠征・合宿の場合
-            if (activityId === 'E' || activityId === 'F') {
+            // E. 遠征の場合: 平日は運転手当から2,400円を引く
+            if (activityId === 'E') {
+                if (isWorkDay) {
+                    // 平日: 5,100円 - 2,400円 = 2,700円
+                    return 2700
+                } else {
+                    // 休日: 2,400円のみ（運転手当を含む）
+                    return 2400
+                }
+            }
+            
+            // F. 合宿の場合
+            if (activityId === 'F') {
                 if (isWorkDay) {
                     // 勤務日の管内運転
                     if (isAccommodation) {
@@ -251,11 +283,6 @@ export const calculateAmount = (
         return 3400
     }
 
-    // H. 宿泊指導
-    if (activityId === 'H') {
-        return 2400
-    }
-
     // その他
     if (activityId === 'OTHER') {
         return 6000
@@ -294,9 +321,8 @@ export const getActivityDescription = (activityId: string): string => {
         'C': '対外運動競技等の引率 - 基本3,400円（運転・距離により変動）',
         'D': '指定外大会 - 2,400円',
         'E': '遠征での部活動指導 - 休日/勤務日・運転により変動',
-        'F': '合宿での部活動指導 - 休日/勤務日・運転により変動',
+        'F': '校内合宿（宿泊を伴う指導） - 休日/勤務日・宿泊により変動',
         'G': '研修旅行等の引率 - 3,400円',
-        'H': '宿泊指導 - 2,400円',
         'OTHER': 'その他の業務 - 6,000円'
     }
     return descriptions[activityId] || ''
@@ -304,14 +330,16 @@ export const getActivityDescription = (activityId: string): string => {
 
 /**
  * 運転手当の適用条件を判定
+ * F（校内合宿）は運転なしなので除外
  */
 export const needsDrivingSelection = (activityId: string): boolean => {
-    return ['C', 'E', 'F'].includes(activityId)
+    return ['C', 'E'].includes(activityId)
 }
 
 /**
  * 宿泊手当の適用条件を判定
+ * Hは削除されたので除外
  */
 export const needsAccommodationSelection = (activityId: string): boolean => {
-    return ['E', 'F', 'H'].includes(activityId)
+    return ['E', 'F'].includes(activityId)
 }

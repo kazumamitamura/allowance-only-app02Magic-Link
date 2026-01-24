@@ -871,32 +871,46 @@ export default function Home() {
                                     {DESTINATIONS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-black mb-1">詳細</label>
-                                <input 
-                                    disabled={isAllowLocked} 
-                                    type="text" 
-                                    placeholder="例: 県体育館" 
-                                    value={destinationDetail} 
-                                    onChange={(e) => setDestinationDetail(e.target.value)} 
-                                    className="w-full bg-white p-3 rounded-lg border border-slate-200 text-xs text-black font-bold" 
-                                />
-                            </div>
+                            
+                            {/* 条件分岐: 運転ありの場合は目的地、指定大会の場合は大会名 */}
+                            {(isDriving || activityId === 'C') && (
+                                <div>
+                                    <label className="block text-xs font-bold text-black mb-1">
+                                        {activityId === 'C' ? '大会名' : '目的地'}
+                                    </label>
+                                    <input 
+                                        disabled={isAllowLocked} 
+                                        type="text" 
+                                        placeholder={activityId === 'C' ? '例: 県高校総体' : '例: 県体育館'} 
+                                        value={destinationDetail} 
+                                        onChange={(e) => setDestinationDetail(e.target.value)} 
+                                        className="w-full bg-white p-3 rounded-lg border border-slate-200 text-xs text-black font-bold" 
+                                    />
+                                </div>
+                            )}
                     </div>
                     )}
                     
                     {/* 運転・宿泊フラグ */}
                     <div className="flex gap-3 mt-2">
-                        <label className={`flex-1 p-3 rounded-lg cursor-pointer border text-center text-xs font-bold ${isDriving ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400'}`}>
-                            <input 
-                                disabled={isAllowLocked} 
-                                type="checkbox" 
-                                checked={isDriving} 
-                                onChange={e => setIsDriving(e.target.checked)} 
-                                className="hidden" 
-                            />
-                            🚗 運転あり
-                        </label>
+                        {/* F（校内合宿）の場合は運転なし */}
+                        {activityId !== 'F' && (
+                            <label className={`flex-1 p-3 rounded-lg cursor-pointer border text-center text-xs font-bold ${isDriving ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400'}`}>
+                                <input 
+                                    disabled={isAllowLocked} 
+                                    type="checkbox" 
+                                    checked={isDriving} 
+                                    onChange={e => setIsDriving(e.target.checked)} 
+                                    className="hidden" 
+                                />
+                                🚗 運転あり
+                            </label>
+                        )}
+                        {activityId === 'F' && (
+                            <div className="flex-1 p-3 rounded-lg border border-gray-300 bg-gray-100 text-center text-xs font-bold text-gray-500">
+                                🚗 校内合宿のため運転なし
+                            </div>
+                        )}
                         <label className={`flex-1 p-3 rounded-lg cursor-pointer border text-center text-xs font-bold ${isAccommodation ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400'}`}>
                             <input 
                                 disabled={isAllowLocked} 
@@ -979,28 +993,45 @@ export default function Home() {
         </div>
       )}
 
-      {/* 氏名登録モーダル */}
+      {/* 氏名登録モーダル（中央に大きく表示） */}
       {showProfileModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">氏名登録</h3>
-                  <p className="text-xs text-slate-500 mb-4">帳票出力に使用する氏名を登録してください。<br/>自動的に姓と名の間に半角スペースが入ります。</p>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-500 animate-pulse-slow">
+                  <div className="text-center mb-4">
+                      <div className="text-5xl mb-2">👤</div>
+                      <h3 className="text-2xl font-extrabold text-gray-900">氏名登録が必要です</h3>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-6 text-center">帳票出力に使用する氏名を登録してください。<br/>姓と名の間に半角スペースが自動で入ります。</p>
                   
-                  <div className="flex gap-2 mb-4">
-                      <div className="flex-1">
-                          <label className="text-xs font-bold text-slate-500">姓 (Last Name)</label>
-                          <input type="text" value={inputLastName} onChange={(e) => setInputLastName(e.target.value)} placeholder="例: 羽黒" className="w-full p-3 rounded border border-slate-300 mt-1 font-bold text-black" />
+                  <div className="space-y-4 mb-6">
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">姓（Last Name）</label>
+                          <input 
+                              type="text" 
+                              value={inputLastName} 
+                              onChange={(e) => setInputLastName(e.target.value)} 
+                              placeholder="例: 三田村" 
+                              className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg font-bold text-black focus:border-blue-500 focus:outline-none" 
+                          />
                       </div>
-                      <div className="flex-1">
-                          <label className="text-xs font-bold text-slate-500">名 (First Name)</label>
-                          <input type="text" value={inputFirstName} onChange={(e) => setInputFirstName(e.target.value)} placeholder="例: 太郎" className="w-full p-3 rounded border border-slate-300 mt-1 font-bold text-black" />
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">名（First Name）</label>
+                          <input 
+                              type="text" 
+                              value={inputFirstName} 
+                              onChange={(e) => setInputFirstName(e.target.value)} 
+                              placeholder="例: 和真" 
+                              className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg font-bold text-black focus:border-blue-500 focus:outline-none" 
+                          />
                       </div>
                   </div>
                   
-                  <div className="flex gap-2">
-                      <button onClick={() => setShowProfileModal(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-500 font-bold">キャンセル</button>
-                      <button onClick={handleSaveProfile} className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold shadow">登録する</button>
-                  </div>
+                  <button 
+                      onClick={handleSaveProfile} 
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition shadow-xl text-lg"
+                  >
+                      💾 氏名を登録する
+                  </button>
               </div>
           </div>
       )}

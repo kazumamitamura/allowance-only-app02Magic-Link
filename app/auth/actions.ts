@@ -125,30 +125,45 @@ export async function signup(formData: FormData) {
 
   console.log('サインアップ成功:', data.user?.id, '確認ステータス:', data.user?.email_confirmed_at)
 
-  // ユーザー登録成功後、プロフィールをupsert（user_idをキーに）
+  // ユーザー登録成功後、プロフィールを作成または更新
   if (data.user) {
     try {
       console.log('プロフィール作成:', data.user.id, email, fullName)
       
-      // user_id をキーとしてupsert（重複時は上書き更新）
-      const { error: profileError } = await supabase
+      // まずinsertを試みる（新規ユーザーの場合）
+      const { error: insertError } = await supabase
         .from('user_profiles')
-        .upsert({
+        .insert({
           user_id: data.user.id,
           email: email,
-          display_name: fullName,  // display_name カラムを使用
-        }, {
-          onConflict: 'user_id'
+          display_name: fullName,
         })
 
-      if (profileError) {
-        console.error('プロフィール作成エラー:', profileError)
-        // プロフィール作成失敗でもログインは成功しているので続行
+      if (insertError) {
+        // 重複エラーの場合はupdate
+        if (insertError.code === '23505' || insertError.message.includes('duplicate')) {
+          console.log('既存プロフィール検出、更新します')
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              email: email,
+              display_name: fullName,
+            })
+            .eq('user_id', data.user.id)
+
+          if (updateError) {
+            console.error('プロフィール更新エラー:', updateError)
+          } else {
+            console.log('プロフィール更新成功')
+          }
+        } else {
+          console.error('プロフィール作成エラー:', insertError)
+        }
       } else {
         console.log('プロフィール作成成功')
       }
     } catch (err) {
-      console.error('プロフィールupsert例外:', err)
+      console.error('プロフィール作成例外:', err)
       // エラーでもログインは成功しているので続行
     }
 
