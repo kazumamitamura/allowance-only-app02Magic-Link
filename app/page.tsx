@@ -808,9 +808,27 @@ export default function Home() {
               {/* 氏名・複数選択・ログアウト - スマホでは横並び */}
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <div className="flex gap-2">
-                  <button onClick={() => setShowProfileModal(true)} className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation flex-1 sm:flex-none whitespace-nowrap">
+                  <button 
+                      onClick={() => {
+                          // 既に氏名が登録されている場合は、現在の氏名を入力欄に分割して表示
+                          if (userName) {
+                              const nameParts = userName.split(' ')
+                              setInputLastName(nameParts[0] || '')
+                              setInputFirstName(nameParts.slice(1).join(' ') || '')
+                          } else {
+                              setInputLastName('')
+                              setInputFirstName('')
+                          }
+                          setShowProfileModal(true)
+                      }} 
+                      className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation flex-1 sm:flex-none whitespace-nowrap"
+                  >
                       {userName ? `👤 ${userName.length > 6 ? userName.substring(0, 6) + '...' : userName}` : '⚙️ 氏名登録'}
                   </button>
+                  
+                  <a href="/documents" className="text-xs sm:text-sm font-bold text-blue-600 bg-blue-50 px-3 sm:px-4 py-2 rounded-full border-2 border-blue-300 hover:bg-blue-100 active:bg-blue-200 transition touch-manipulation whitespace-nowrap shadow-sm">📄 規約閲覧</a>
+                  
+                  <a href="/contact" className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation whitespace-nowrap">📧 お問い合わせ</a>
                   
                   <button onClick={handleLogout} className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-200 active:bg-slate-300 transition touch-manipulation">ログアウト</button>
                 </div>
@@ -1231,13 +1249,56 @@ export default function Home() {
 
       {/* 氏名登録モーダル（中央に大きく表示） */}
       {showProfileModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-500 animate-pulse-slow">
+          <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => {
+                  // 既に氏名が登録されている場合は閉じられる
+                  if (userName) {
+                      setShowProfileModal(false)
+                  }
+              }}
+          >
+              <div 
+                  className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-500 relative"
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  {/* ×ボタン（既に氏名が登録されている場合のみ表示） */}
+                  {userName && (
+                      <button
+                          onClick={() => setShowProfileModal(false)}
+                          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 active:text-slate-800 text-3xl font-bold transition touch-manipulation"
+                      >
+                          ×
+                      </button>
+                  )}
+                  
                   <div className="text-center mb-4">
                       <div className="text-5xl mb-2">👤</div>
-                      <h3 className="text-2xl font-extrabold text-gray-900">氏名登録が必要です</h3>
+                      <h3 className="text-2xl font-extrabold text-gray-900">
+                          {userName ? '氏名を変更' : '氏名登録が必要です'}
+                      </h3>
                   </div>
-                  <p className="text-sm text-slate-600 mb-6 text-center">帳票出力に使用する氏名を登録してください。<br/>姓と名の間に半角スペースが自動で入ります。</p>
+                  <p className="text-sm text-slate-600 mb-6 text-center">
+                      {userName ? (
+                          <>
+                              帳票出力に使用する氏名を変更できます。<br/>
+                              姓と名の間に半角スペースが自動で入ります。
+                          </>
+                      ) : (
+                          <>
+                              帳票出力に使用する氏名を登録してください。<br/>
+                              姓と名の間に半角スペースが自動で入ります。
+                          </>
+                      )}
+                  </p>
+                  
+                  {/* 現在の氏名表示（変更時のみ） */}
+                  {userName && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-xs text-blue-700 font-bold mb-1">現在の氏名</p>
+                          <p className="text-sm text-blue-900 font-bold">{userName}</p>
+                      </div>
+                  )}
                   
                   <div className="space-y-4 mb-6">
                       <div>
@@ -1262,12 +1323,28 @@ export default function Home() {
                       </div>
                   </div>
                   
-                  <button 
-                      onClick={handleSaveProfile} 
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition shadow-xl text-lg"
-                  >
-                      💾 氏名を登録する
-                  </button>
+                  <div className="flex gap-3">
+                      {/* キャンセルボタン（既に氏名が登録されている場合のみ表示） */}
+                      {userName && (
+                          <button 
+                              onClick={() => {
+                                  setShowProfileModal(false)
+                                  setInputLastName('')
+                                  setInputFirstName('')
+                              }}
+                              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl transition shadow-lg text-lg"
+                          >
+                              キャンセル
+                          </button>
+                      )}
+                      
+                      <button 
+                          onClick={handleSaveProfile} 
+                          className={`${userName ? 'flex-1' : 'w-full'} bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition shadow-xl text-lg`}
+                      >
+                          💾 {userName ? '氏名を変更する' : '氏名を登録する'}
+                      </button>
+                  </div>
               </div>
           </div>
       )}

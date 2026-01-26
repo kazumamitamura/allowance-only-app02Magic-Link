@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* メインメニューカード */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* 手当管理 */}
           <button 
             onClick={() => router.push('/admin/allowances')}
@@ -202,16 +202,16 @@ export default function AdminDashboard() {
             onClick={() => router.push('/admin/export')}
             className="bg-gradient-to-br from-green-500 to-green-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
           >
-            <div className="flex items-start justify-between mb-6">
-              <div className="text-6xl">📊</div>
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">📊</div>
             </div>
-            <h3 className="text-3xl font-extrabold text-white mb-3">
+            <h3 className="text-2xl font-extrabold text-white mb-2">
               Excel出力
             </h3>
-            <p className="text-green-100 text-sm mb-4">
+            <p className="text-green-100 text-xs mb-3">
               個人・全体の月次・年次レポート出力
             </p>
-            <div className="text-xs text-green-200 bg-green-700/30 px-3 py-2 rounded-lg inline-block">
+            <div className="text-xs text-green-200 bg-green-700/30 px-2 py-1 rounded-lg inline-block">
               全管理者
             </div>
           </button>
@@ -219,18 +219,62 @@ export default function AdminDashboard() {
           {/* 手当設定 */}
           <button 
             onClick={() => router.push('/admin/settings')}
-            className="bg-gradient-to-br from-purple-500 to-purple-600 p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+            className="bg-gradient-to-br from-purple-500 to-purple-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
           >
-            <div className="flex items-start justify-between mb-6">
-              <div className="text-6xl">⚙️</div>
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">⚙️</div>
             </div>
-            <h3 className="text-3xl font-extrabold text-white mb-3">
+            <h3 className="text-2xl font-extrabold text-white mb-2">
               手当設定
             </h3>
-            <p className="text-purple-100 text-sm mb-4">
+            <p className="text-purple-100 text-xs mb-3">
               手当種別・金額のマスタ管理
             </p>
-            <div className="text-xs text-purple-200 bg-purple-700/30 px-3 py-2 rounded-lg inline-block">
+            <div className="text-xs text-purple-200 bg-purple-700/30 px-2 py-1 rounded-lg inline-block">
+              管理者専用
+            </div>
+          </button>
+
+          {/* 資料管理（PDFアップロード） */}
+          <button 
+            onClick={() => router.push('/admin/documents')}
+            className="bg-gradient-to-br from-teal-500 to-teal-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105 border-4 border-teal-400"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">📄</div>
+              <span className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+                NEW
+              </span>
+            </div>
+            <h3 className="text-2xl font-extrabold text-white mb-2">
+              資料管理
+            </h3>
+            <p className="text-teal-100 text-xs mb-3">
+              PDF規約のアップロード・管理
+            </p>
+            <div className="text-xs text-teal-200 bg-teal-700/30 px-2 py-1 rounded-lg inline-block">
+              管理者専用
+            </div>
+          </button>
+        </div>
+
+        {/* 追加メニュー */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* お問い合わせ管理 */}
+          <button 
+            onClick={() => router.push('/admin/inquiries')}
+            className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all text-left group transform hover:scale-105"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="text-5xl">📧</div>
+            </div>
+            <h3 className="text-2xl font-extrabold text-white mb-2">
+              お問い合わせ管理
+            </h3>
+            <p className="text-orange-100 text-xs mb-3">
+              ユーザーからの問い合わせを確認・管理
+            </p>
+            <div className="text-xs text-orange-200 bg-orange-700/30 px-2 py-1 rounded-lg inline-block">
               管理者専用
             </div>
           </button>
