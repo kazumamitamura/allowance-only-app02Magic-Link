@@ -63,12 +63,30 @@ export async function submitInquiry(data: {
         errorHint.includes('inquiries')
       )
       
+      // RLSポリシー関連のエラー
+      const isRLSError = (
+        errorMessage.includes('permission denied') ||
+        errorMessage.includes('new row violates row-level security') ||
+        errorMessage.includes('RLS') ||
+        errorCode === '42501' ||
+        errorCode === 'PGRST301'
+      )
+      
       if (isTableNotFound) {
         return { 
           error: '問い合わせの送信に失敗しました: 問い合わせテーブルが作成されていません。\n\n【解決方法】\n1. Supabase Dashboard の SQL Editor を開く\n2. SETUP_INQUIRIES_AND_DOCUMENTS.sql の内容をコピー\n3. SQL Editor に貼り付けて実行\n\nエラー詳細:\nメッセージ: ' + errorMessage + '\nコード: ' + errorCode 
         }
       }
-      return { error: '問い合わせの送信に失敗しました: ' + errorMessage + (errorCode ? ' (コード: ' + errorCode + ')' : '') }
+      
+      if (isRLSError) {
+        return { 
+          error: '問い合わせの送信に失敗しました: アクセス権限の問題が発生しています。\n\n【解決方法】\n1. Supabase Dashboard の SQL Editor を開く\n2. CHECK_RLS_POLICIES.sql を実行してRLSポリシーを確認\n3. SETUP_INQUIRIES_AND_DOCUMENTS.sql を再実行してポリシーを再作成\n\nエラー詳細:\nメッセージ: ' + errorMessage + '\nコード: ' + errorCode 
+        }
+      }
+      
+      return { 
+        error: '問い合わせの送信に失敗しました: ' + errorMessage + (errorCode ? ' (コード: ' + errorCode + ')' : '') + '\n\n詳細: ' + (errorDetails || 'なし') + (errorHint ? '\nヒント: ' + errorHint : '')
+      }
     }
 
     // 管理者にメール通知を送信
