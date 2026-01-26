@@ -62,9 +62,19 @@ export async function uploadDocument(data: {
       } catch (removeError) {
         console.error('Storage削除エラー（ロールバック）:', removeError)
       }
-      // テーブルが存在しない場合のエラーメッセージ
-      if (insertError.message.includes('does not exist') || insertError.code === '42P01') {
-        return { error: 'データの保存に失敗しました: 資料テーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。' }
+      // テーブルが存在しない場合のエラーメッセージ（複数のパターンをチェック）
+      const errorMessage = insertError.message || ''
+      const errorCode = insertError.code || ''
+      
+      if (
+        errorMessage.includes('does not exist') || 
+        errorMessage.includes('schema cache') || 
+        errorMessage.includes('relation') ||
+        errorMessage.includes('table') ||
+        errorCode === '42P01' ||
+        errorCode === 'PGRST116'
+      ) {
+        return { error: 'データの保存に失敗しました: 資料テーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。\n\nエラー詳細: ' + errorMessage }
       }
       return { error: 'データの保存に失敗しました: ' + insertError.message }
     }

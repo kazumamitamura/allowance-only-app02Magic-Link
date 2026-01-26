@@ -35,12 +35,40 @@ export async function submitInquiry(data: {
       .single()
 
     if (insertError) {
-      console.error('問い合わせ保存エラー:', insertError)
-      // テーブルが存在しない場合のエラーメッセージ
-      if (insertError.message.includes('does not exist') || insertError.message.includes('schema cache') || insertError.code === '42P01') {
-        return { error: '問い合わせの送信に失敗しました: 問い合わせテーブルが作成されていません。\n\n管理者に連絡して、SETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してもらってください。' }
+      console.error('問い合わせ保存エラー（詳細）:', {
+        message: insertError.message,
+        code: insertError.code,
+        details: insertError.details,
+        hint: insertError.hint,
+        fullError: insertError
+      })
+      
+      // テーブルが存在しない場合のエラーメッセージ（複数のパターンをチェック）
+      const errorMessage = insertError.message || ''
+      const errorCode = insertError.code || ''
+      const errorDetails = insertError.details || ''
+      const errorHint = insertError.hint || ''
+      
+      // より包括的なエラーチェック
+      const isTableNotFound = (
+        errorMessage.includes('does not exist') || 
+        errorMessage.includes('schema cache') || 
+        errorMessage.includes('relation') ||
+        errorMessage.includes('table') ||
+        errorMessage.includes('inquiries') ||
+        errorMessage.includes('Could not find') ||
+        errorCode === '42P01' ||
+        errorCode === 'PGRST116' ||
+        errorDetails.includes('inquiries') ||
+        errorHint.includes('inquiries')
+      )
+      
+      if (isTableNotFound) {
+        return { 
+          error: '問い合わせの送信に失敗しました: 問い合わせテーブルが作成されていません。\n\n【解決方法】\n1. Supabase Dashboard の SQL Editor を開く\n2. SETUP_INQUIRIES_AND_DOCUMENTS.sql の内容をコピー\n3. SQL Editor に貼り付けて実行\n\nエラー詳細:\nメッセージ: ' + errorMessage + '\nコード: ' + errorCode 
+        }
       }
-      return { error: '問い合わせの送信に失敗しました: ' + insertError.message }
+      return { error: '問い合わせの送信に失敗しました: ' + errorMessage + (errorCode ? ' (コード: ' + errorCode + ')' : '') }
     }
 
     // 管理者にメール通知を送信
