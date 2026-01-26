@@ -64,7 +64,13 @@ export default function InquiriesPage() {
 
       if (error) {
         console.error('問い合わせ取得エラー:', error)
-        alert('問い合わせの取得に失敗しました')
+        // テーブルが存在しない場合のエラーメッセージ
+        if (error.message.includes('does not exist') || error.code === '42P01') {
+          alert('問い合わせテーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。')
+        } else {
+          alert('問い合わせの取得に失敗しました: ' + error.message)
+        }
+        setInquiries([])
       } else {
         setInquiries(data || [])
       }

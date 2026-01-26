@@ -34,6 +34,10 @@ export async function uploadDocument(data: {
 
     if (uploadError) {
       console.error('Storageアップロードエラー:', uploadError)
+      // バケットが存在しない場合の詳細なエラーメッセージ
+      if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('not found')) {
+        return { error: 'ファイルのアップロードに失敗しました: Bucket not found\n\nSupabase Dashboard で Storage バケット「documents」を作成してください。\n詳細は SETUP_INQUIRIES_AND_DOCUMENTS.md を参照してください。' }
+      }
       return { error: 'ファイルのアップロードに失敗しました: ' + uploadError.message }
     }
 
@@ -53,7 +57,15 @@ export async function uploadDocument(data: {
     if (insertError) {
       console.error('データベース保存エラー:', insertError)
       // Storageからファイルを削除（ロールバック）
-      await supabase.storage.from('documents').remove([filePath])
+      try {
+        await supabase.storage.from('documents').remove([filePath])
+      } catch (removeError) {
+        console.error('Storage削除エラー（ロールバック）:', removeError)
+      }
+      // テーブルが存在しない場合のエラーメッセージ
+      if (insertError.message.includes('does not exist') || insertError.code === '42P01') {
+        return { error: 'データの保存に失敗しました: 資料テーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。' }
+      }
       return { error: 'データの保存に失敗しました: ' + insertError.message }
     }
 

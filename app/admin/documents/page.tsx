@@ -60,12 +60,19 @@ export default function DocumentsAdminPage() {
 
       if (error) {
         console.error('文書取得エラー:', error)
-        alert('文書の取得に失敗しました')
+        // テーブルが存在しない場合のエラーメッセージ
+        if (error.message.includes('does not exist') || error.code === '42P01') {
+          alert('資料テーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。')
+        } else {
+          alert('文書の取得に失敗しました: ' + error.message)
+        }
+        setDocuments([])
       } else {
         setDocuments(data || [])
       }
     } catch (err) {
       console.error('文書取得中の予期しないエラー:', err)
+      setDocuments([])
     }
     setLoading(false)
   }
@@ -97,7 +104,14 @@ export default function DocumentsAdminPage() {
       })
 
       if (result?.error) {
-        alert('アップロードに失敗しました: ' + result.error)
+        // より分かりやすいエラーメッセージ
+        let errorMessage = result.error
+        if (result.error.includes('Bucket not found')) {
+          errorMessage = 'Storageバケット「documents」が作成されていません。\n\nSupabase Dashboard で Storage バケットを作成してください。\n詳細は SETUP_INQUIRIES_AND_DOCUMENTS.md を参照してください。'
+        } else if (result.error.includes('does not exist') || result.error.includes('42P01')) {
+          errorMessage = '資料テーブルが作成されていません。\n\nSETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してください。'
+        }
+        alert('アップロードに失敗しました: ' + errorMessage)
       } else {
         alert('アップロードが完了しました')
         setTitle('')

@@ -384,7 +384,7 @@ export default function Home() {
             setDestinationDetail('') // 目的地はクリア
           }
         } else {
-          setDestinationDetail(allowance.destination_detail || '')
+        setDestinationDetail(allowance.destination_detail || '')
           setCompetitionName('') // 大会名はクリア
         }
         
@@ -459,9 +459,9 @@ export default function Home() {
     if (!user) {
       console.error('ユーザー情報が取得できません')
       alert('ユーザー情報が取得できません。再ログインしてください。')
-      return
-    }
-    
+          return
+      }
+      
     // 保存対象の日付リスト（複数選択されている場合は全日付、そうでなければ単一日付）
     const targetDates = selectedDates.length > 0 ? selectedDates : [selectedDate]
     
@@ -530,7 +530,7 @@ export default function Home() {
         
         console.log('挿入成功:', dateStr, insertedData)
       }
-    } else {
+        } else {
       // 手当なしの場合は削除のみ
       for (const date of targetDates) {
         const dateStr = formatDate(date)
@@ -634,7 +634,7 @@ export default function Home() {
       
       // 最初の日付を選択した場合、それをselectedDateにも設定
       if (selectedDates.length === 0) {
-        setSelectedDate(date)
+    setSelectedDate(date)
       }
     } else {
       // 単一選択モード
@@ -646,7 +646,7 @@ export default function Home() {
         alert('⏰ 締め切り済みのため編集できません\n\n対象月の翌月10日までに入力・編集を完了してください。')
         return
       }
-      setShowInputModal(true)
+    setShowInputModal(true)
     }
   }
   
@@ -851,7 +851,7 @@ export default function Home() {
                 <div className="mt-3 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-400 rounded-xl p-4 shadow-lg">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                         <span className="text-2xl">📅</span>
                         <div>
                           <span className="text-blue-900 font-extrabold text-lg block">
@@ -864,15 +864,15 @@ export default function Home() {
                               ? '内容を入力してまとめて保存できます' 
                               : 'タップするたびに選択/解除できます'}
                           </span>
-                        </div>
+              </div>
                       </div>
                       <button
                         onClick={handleMultiSelectCancel}
                         className="bg-slate-400 hover:bg-slate-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm touch-manipulation"
                       >
                         ✕
-                      </button>
-                    </div>
+              </button>
+            </div>
                     
                     {/* 選択された日付のリスト */}
                     {selectedDates.length > 0 && (
@@ -884,7 +884,7 @@ export default function Home() {
                               {date.getMonth() + 1}/{date.getDate()}
                             </span>
                           ))}
-                        </div>
+          </div>
                       </div>
                     )}
                     
@@ -913,7 +913,7 @@ export default function Home() {
             onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setSelectedDate(activeStartDate)} 
             locale="ja-JP" 
             tileContent={getTileContent} 
-            className="w-full border-none calendar-large"
+            className="w-full border-none calendar-large" 
             tileDisabled={() => false} 
           />
         </div>
@@ -965,7 +965,7 @@ export default function Home() {
                           他 {selectedDates.length - 10}日
                         </span>
                       )}
-                    </div>
+                           </div>
                   </>
                 ) : (
                   <>
@@ -975,9 +975,9 @@ export default function Home() {
                       <span className={`text-xs px-2 py-1 rounded font-bold ${dayType.includes('休日') || dayType.includes('週休') ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                         {dayType}
                       </span>
-                    </div>
+                </div>
                   </>
-                )}
+              )}
               </div>
               <button onClick={() => { setShowInputModal(false); setSelectedDates([]); setIsMultiSelectMode(false); }} className="text-slate-400 hover:text-slate-600 active:text-slate-800 text-3xl sm:text-2xl font-bold ml-2 touch-manipulation">×</button>
             </div>
@@ -1097,7 +1097,7 @@ export default function Home() {
                             
                             {/* 指定大会の場合は大会名を入力 */}
                             {activityId === 'C' && (
-                                <div>
+                            <div>
                                     <label className="block text-xs font-bold text-blue-700 mb-1">大会名 ✏️</label>
                                     <input 
                                         disabled={isAllowLocked} 
@@ -1146,26 +1146,29 @@ export default function Home() {
                     )}
                     
                     {/* 運転・宿泊フラグ */}
-                    <div className="flex gap-3 mt-2">
+                    <div className="grid grid-cols-2 gap-3 mt-4">
                         {/* F（校内合宿）の場合は運転なし */}
                         {activityId !== 'F' && (
-                            <label className={`flex-1 p-3 rounded-lg cursor-pointer border text-center text-xs font-bold ${isDriving ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400'}`}>
-                                <input 
-                                    disabled={isAllowLocked} 
-                                    type="checkbox" 
-                                    checked={isDriving} 
-                                    onChange={e => setIsDriving(e.target.checked)} 
-                                    className="hidden" 
-                                />
-                                🚗 運転あり
-                            </label>
+                            <label className={`p-4 rounded-xl cursor-pointer border-2 text-center text-sm font-bold transition-all shadow-sm hover:shadow-md ${isDriving ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 shadow-blue-200' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400 hover:bg-slate-50'}`}>
+                            <input 
+                                disabled={isAllowLocked} 
+                                type="checkbox" 
+                                checked={isDriving} 
+                                onChange={e => setIsDriving(e.target.checked)} 
+                                className="hidden" 
+                            />
+                                <div className="text-2xl mb-1">🚗</div>
+                                <div>運転あり</div>
+                        </label>
                         )}
                         {activityId === 'F' && (
-                            <div className="flex-1 p-3 rounded-lg border border-gray-300 bg-gray-100 text-center text-xs font-bold text-gray-500">
-                                🚗 校内合宿のため運転なし
+                            <div className="p-4 rounded-xl border-2 border-gray-300 bg-gradient-to-br from-gray-100 to-gray-200 text-center text-sm font-bold text-gray-600 shadow-sm">
+                                <div className="text-2xl mb-1">🚗</div>
+                                <div>校内合宿のため</div>
+                                <div className="text-xs mt-1">運転なし</div>
                             </div>
                         )}
-                        <label className={`flex-1 p-3 rounded-lg cursor-pointer border text-center text-xs font-bold ${isAccommodation ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400'}`}>
+                        <label className={`p-4 rounded-xl cursor-pointer border-2 text-center text-sm font-bold transition-all shadow-sm hover:shadow-md ${isAccommodation ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 shadow-purple-200' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400 hover:bg-slate-50'}`}>
                             <input 
                                 disabled={isAllowLocked} 
                                 type="checkbox" 
@@ -1173,16 +1176,20 @@ export default function Home() {
                                 onChange={e => setIsAccommodation(e.target.checked)} 
                                 className="hidden" 
                             />
-                            🏨 宿泊あり
+                            <div className="text-2xl mb-1">🏨</div>
+                            <div>宿泊あり</div>
                         </label>
                     </div>
                     
                     {/* 計算ロジック説明 */}
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
-                        <div className="text-xs text-blue-700 mb-1">
-                            <span className="font-bold">📋 計算内訳:</span>
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-300 mt-4 shadow-sm">
+                        <div className="text-xs sm:text-sm text-blue-800 mb-2">
+                            <span className="font-extrabold flex items-center gap-1">
+                                <span className="text-base">📋</span>
+                                <span>計算内訳</span>
+                            </span>
                         </div>
-                        <div className="text-xs text-slate-600">
+                        <div className="text-xs sm:text-sm text-slate-700 font-bold bg-white p-3 rounded-lg border border-blue-200">
                             {(() => {
                                 const isWorkDay = dayType.includes('勤務日') || dayType.includes('授業')
                                 
@@ -1228,17 +1235,28 @@ export default function Home() {
                         </div>
                     </div>
                     
-                    <div className="bg-slate-800 text-white p-4 rounded-xl flex justify-between items-center mt-2">
-                        <span className="text-xs font-medium">支給予定額</span>
-                        <span className="text-xl font-bold">¥{calculatedAmount.toLocaleString()}</span>
+                    <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-5 rounded-xl flex justify-between items-center mt-4 shadow-lg border-2 border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl">💰</span>
+                            <span className="text-sm sm:text-base font-bold">支給予定額</span>
+                        </div>
+                        <span className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-yellow-200 to-yellow-300 bg-clip-text text-transparent">
+                            ¥{calculatedAmount.toLocaleString()}
+                        </span>
                     </div>
                 </>
                 )}
             </div>
 
             {!isAllowLocked && (
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 sm:py-4 rounded-xl hover:bg-blue-700 active:bg-blue-800 shadow-lg text-base sm:text-lg touch-manipulation">
-                    💾 この内容で保存する
+                <button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 sm:py-5 rounded-xl hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 shadow-xl hover:shadow-2xl text-base sm:text-lg touch-manipulation transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    <span className="flex items-center justify-center gap-2">
+                        <span className="text-xl">💾</span>
+                        <span>この内容で保存する</span>
+                    </span>
                 </button>
             )}
           </form>
@@ -1277,7 +1295,7 @@ export default function Home() {
                       <h3 className="text-2xl font-extrabold text-gray-900">
                           {userName ? '氏名を変更' : '氏名登録が必要です'}
                       </h3>
-                  </div>
+                      </div>
                   <p className="text-sm text-slate-600 mb-6 text-center">
                       {userName ? (
                           <>

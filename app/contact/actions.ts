@@ -36,6 +36,10 @@ export async function submitInquiry(data: {
 
     if (insertError) {
       console.error('問い合わせ保存エラー:', insertError)
+      // テーブルが存在しない場合のエラーメッセージ
+      if (insertError.message.includes('does not exist') || insertError.message.includes('schema cache') || insertError.code === '42P01') {
+        return { error: '問い合わせの送信に失敗しました: 問い合わせテーブルが作成されていません。\n\n管理者に連絡して、SETUP_INQUIRIES_AND_DOCUMENTS.sql を実行してもらってください。' }
+      }
       return { error: '問い合わせの送信に失敗しました: ' + insertError.message }
     }
 

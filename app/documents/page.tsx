@@ -44,7 +44,14 @@ export default function DocumentsPage() {
 
       if (error) {
         console.error('文書取得エラー:', error)
-        alert('文書の取得に失敗しました')
+        // テーブルが存在しない場合のエラーメッセージ
+        if (error.message.includes('does not exist') || error.code === '42P01') {
+          // テーブルが存在しない場合は、エラーを表示せず空の配列を設定
+          console.warn('資料テーブルが作成されていません')
+        } else {
+          alert('文書の取得に失敗しました: ' + error.message)
+        }
+        setDocuments([])
       } else {
         setDocuments(data || [])
       }
@@ -63,6 +70,12 @@ export default function DocumentsPage() {
         .download(document.file_path)
 
       if (error) {
+        // バケットが存在しない場合のエラーメッセージ
+        if (error.message.includes('Bucket not found') || error.message.includes('not found')) {
+          alert('Storageバケット「documents」が作成されていません。\n\n管理者に連絡してください。')
+        } else {
+          alert('ファイルのダウンロードに失敗しました: ' + error.message)
+        }
         throw error
       }
 
