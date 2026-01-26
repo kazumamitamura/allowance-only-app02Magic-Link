@@ -59,8 +59,15 @@ export async function submitInquiry(data: {
         errorMessage.includes('Could not find') ||
         errorCode === '42P01' ||
         errorCode === 'PGRST116' ||
+        errorCode === 'PGRST205' || // スキーマキャッシュのエラー
         errorDetails.includes('inquiries') ||
         errorHint.includes('inquiries')
+      )
+      
+      // スキーマキャッシュのエラー（PGRST205）の特別処理
+      const isSchemaCacheError = (
+        errorCode === 'PGRST205' ||
+        (errorMessage.includes('schema cache') && errorMessage.includes('Could not find'))
       )
       
       // RLSポリシー関連のエラー
@@ -71,6 +78,12 @@ export async function submitInquiry(data: {
         errorCode === '42501' ||
         errorCode === 'PGRST301'
       )
+      
+      if (isSchemaCacheError) {
+        return { 
+          error: '問い合わせの送信に失敗しました: スキーマキャッシュが更新されていません。\n\n【解決方法】\n1. Supabase Dashboard → Settings → API を開く\n2. "Reload schema cache" または "Refresh schema" ボタンをクリック\n3. 数秒待ってから再度お試しください\n\nまたは、以下のSQLを実行してください：\nSELECT COUNT(*) FROM inquiries;\n\nエラー詳細:\nメッセージ: ' + errorMessage + '\nコード: ' + errorCode 
+        }
+      }
       
       if (isTableNotFound) {
         return { 
