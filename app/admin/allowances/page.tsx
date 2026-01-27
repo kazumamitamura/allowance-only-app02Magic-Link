@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { checkAccess, canManageAllowances } from '@/utils/adminRoles'
+import { handleSupabaseError, logSupabaseError } from '@/utils/supabase/errorHandler'
 import * as XLSX from 'xlsx'
 
 type MonthlyApplication = {
@@ -90,11 +91,17 @@ export default function AllowanceManagementPage() {
     else if (filter === 'approved') query = query.eq('status', 'approved')
     else if (filter === 'rejected') query = query.eq('status', 'rejected')
     
-    const { data: appData } = await query
+    const { data: appData, error: appError } = await query
+    if (appError) {
+      logSupabaseError('申請データ取得', appError)
+    }
     setApplications(appData || [])
 
     // 2. 氏名マスタ取得
-    const { data: userData } = await supabase.from('user_profiles').select('*')
+    const { data: userData, error: userError } = await supabase.from('user_profiles').select('*')
+    if (userError) {
+      logSupabaseError('ユーザープロフィール取得', userError)
+    }
     const pMap: Record<string, string> = {}
     userData?.forEach((u: any) => pMap[u.email] = u.display_name)
     setUserProfiles(pMap)
@@ -120,7 +127,10 @@ export default function AllowanceManagementPage() {
   }
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('user_profiles').select('*').order('display_name')
+    const { data, error } = await supabase.from('user_profiles').select('*').order('display_name')
+    if (error) {
+      logSupabaseError('ユーザー一覧取得', error)
+    }
     setUsers(data || [])
   }
 
@@ -139,7 +149,10 @@ export default function AllowanceManagementPage() {
       })
       .eq('id', app.id)
 
-    if (error) alert('エラー: ' + error.message)
+    if (error) {
+      logSupabaseError('申請承認/却下', error)
+      const errorMessage = handleSupabaseError(error)
+      alert('エラー:\n\n' + errorMessage)
     else {
       alert(`${label}しました！`)
       fetchApprovalData()

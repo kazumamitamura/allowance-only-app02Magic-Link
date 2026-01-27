@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { isAdmin as checkIsAdmin, getUserRoles } from '@/utils/adminRoles'
+import { handleSupabaseError, logSupabaseError } from '@/utils/supabase/errorHandler'
 import { logout } from '../auth/actions'
 
 export default function AdminDashboard() {
@@ -45,11 +46,15 @@ export default function AdminDashboard() {
     setLoading(true)
     
     // 承認待ちの手当申請数を取得
-    const { data: allowanceData } = await supabase
+    const { data: allowanceData, error } = await supabase
       .from('monthly_applications')
       .select('*')
       .eq('application_type', 'allowance')
       .eq('status', 'submitted')
+
+    if (error) {
+      logSupabaseError('統計データ取得', error)
+    }
 
     setStats({
       pendingAllowances: allowanceData?.length || 0

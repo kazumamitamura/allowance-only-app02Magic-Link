@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { handleSupabaseError, logSupabaseError } from '@/utils/supabase/errorHandler'
 import { useRouter } from 'next/navigation'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
@@ -312,7 +313,8 @@ export default function Home() {
         .order('date', { ascending: false })
     
       if (error) {
-        console.error('手当データ取得エラー:', error)
+        logSupabaseError('手当データ取得', error)
+        // エラーが発生しても空配列を設定して続行（ユーザー体験を優先）
         setAllowances([])
     } else {
         console.log('手当データ取得成功:', allowData?.length, '件')
@@ -341,7 +343,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase.from('school_calendar').select('*')
       if (error) {
-        console.error('学校カレンダー取得エラー:', error)
+        logSupabaseError('学校カレンダー取得', error)
         setSchoolCalendar([])
       } else {
         setSchoolCalendar(data || [])
@@ -356,7 +358,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase.from('annual_schedules').select('*')
       if (error) {
-        console.error('年間予定取得エラー:', error)
+        logSupabaseError('年間予定取得', error)
         setAnnualSchedules([])
       } else {
         setAnnualSchedules(data || [])
@@ -371,7 +373,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase.from('allowance_types').select('*').order('code')
       if (error) {
-        console.error('手当種別取得エラー:', error)
+        logSupabaseError('手当種別取得', error)
         setAllowanceTypes([])
       } else {
         setAllowanceTypes(data || [])
@@ -387,7 +389,7 @@ export default function Home() {
     const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const { data, error } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
       if (error) {
-        console.error('申請状態取得エラー:', error)
+        logSupabaseError('申請状態取得', error)
         setAllowanceStatus('draft')
       } else {
     const allow = data?.find(d => d.application_type === 'allowance')
@@ -576,8 +578,9 @@ export default function Home() {
         const { data: insertedData, error: insertError } = await supabase.from('allowances').insert(insertData).select()
         
         if (insertError) {
-          console.error('挿入エラー:', dateStr, insertError)
-          alert(`${dateStr} の保存に失敗しました: ${insertError.message}`)
+          logSupabaseError(`手当データ保存 (${dateStr})`, insertError)
+          const errorMessage = handleSupabaseError(insertError)
+          alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}`)
           return
         }
         
@@ -648,11 +651,12 @@ export default function Home() {
       application_type: 'allowance', 
       status: 'submitted', 
       submitted_at: new Date().toISOString() 
-    })
+    }, { onConflict: 'user_id,year_month,application_type' })
     
-    if (error) { 
-      console.error('申請エラー:', error)
-      alert('申請エラー: ' + error.message)
+    if (error) {
+      logSupabaseError('手当申請', error)
+      const errorMessage = handleSupabaseError(error)
+      alert('申請に失敗しました:\n\n' + errorMessage)
     } else { 
       console.log('申請成功:', data)
       await fetchApplicationStatus(userId, selectedDate)
