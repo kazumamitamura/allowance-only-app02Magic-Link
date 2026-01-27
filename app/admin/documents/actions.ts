@@ -18,27 +18,48 @@ export async function uploadDocument(data: {
   }
 
   try {
-    // ファイル名をサニタイズ（特殊文字を削除または置換）
+    // ファイル名をサニタイズ（Storageキー用に英数字のみに変換）
     const sanitizeFileName = (name: string): string => {
       // 拡張子を取得
       const lastDot = name.lastIndexOf('.')
-      const extension = lastDot > 0 ? name.substring(lastDot) : ''
+      const extension = lastDot > 0 ? name.substring(lastDot).toLowerCase() : ''
       const baseName = lastDot > 0 ? name.substring(0, lastDot) : name
       
-      // 特殊文字を削除または置換
-      // 許可する文字: 英数字、ひらがな、カタカナ、漢字、一部の記号（-、_、.）
-      const sanitized = baseName
-        .replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBF\-\_\.]/g, '') // 特殊文字を削除
+      // ファイル名を完全に英数字とアンダースコア、ハイフンのみに変換
+      // 日本語や特殊文字はすべて削除し、英数字のみを使用
+      let sanitized = baseName
+        .replace(/[^a-zA-Z0-9\-_]/g, '') // 英数字、ハイフン、アンダースコア以外を削除
         .replace(/\s+/g, '_') // スペースをアンダースコアに置換
-        .substring(0, 200) // 長すぎるファイル名を切り詰め
+        .replace(/_{2,}/g, '_') // 連続するアンダースコアを1つに
+        .replace(/^_+|_+$/g, '') // 先頭と末尾のアンダースコアを削除
+        .substring(0, 100) // 長すぎるファイル名を切り詰め
+      
+      // ファイル名が空になった場合はデフォルト名を使用
+      if (!sanitized) {
+        sanitized = 'document'
+      }
       
       return sanitized + extension
     }
     
-    // ファイル名を生成（タイムスタンプ + サニタイズされたファイル名）
+    // UUID風のランダム文字列を生成（より安全なファイル名）
+    const generateRandomString = (length: number = 8): string => {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+      let result = ''
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+      return result
+    }
+    
+    // ファイル名を生成（タイムスタンプ + ランダム文字列 + サニタイズされた拡張子）
     const timestamp = Date.now()
-    const sanitizedName = sanitizeFileName(data.file.name)
-    const fileName = `${timestamp}_${sanitizedName}`
+    const randomStr = generateRandomString(8)
+    const lastDot = data.file.name.lastIndexOf('.')
+    const extension = lastDot > 0 ? data.file.name.substring(lastDot).toLowerCase() : '.pdf'
+    // 拡張子もサニタイズ（英数字とドットのみ）
+    const sanitizedExt = extension.replace(/[^a-zA-Z0-9.]/g, '')
+    const fileName = `${timestamp}_${randomStr}${sanitizedExt}`
     const filePath = fileName
 
     // Supabase Storageにアップロード
