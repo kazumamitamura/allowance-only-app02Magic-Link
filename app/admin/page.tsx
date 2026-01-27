@@ -82,19 +82,45 @@ export default function AdminDashboard() {
       const dataLines = lines.slice(1)
       
       const records = dataLines.map(line => {
-        const [date, workType, eventName] = line.split(',').map(v => v.trim())
+        // CSVのパース（カンマ区切り、ダブルクォート対応）
+        const parts: string[] = []
+        let current = ''
+        let inQuotes = false
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i]
+          if (char === '"') {
+            inQuotes = !inQuotes
+          } else if (char === ',' && !inQuotes) {
+            parts.push(current.trim())
+            current = ''
+          } else {
+            current += char
+          }
+        }
+        parts.push(current.trim())
+        
+        const [date, workType, eventName] = parts.map(v => v.replace(/^"|"$/g, '').trim())
+        
+        // 日付の形式を確認（YYYY-MM-DD形式）
+        if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return null
+        }
+        
         return {
           date,
           work_type: workType || '',
           event_name: eventName || ''
         }
-      }).filter(r => r.date) // 日付がある行のみ
+      }).filter((r): r is { date: string; work_type: string; event_name: string } => r !== null) // nullを除外
 
       if (records.length === 0) {
-        alert('有効なデータが見つかりませんでした')
+        alert('有効なデータが見つかりませんでした。\n\nCSV形式: 日付,勤務区分,行事名\n例: 2025-04-01,A,入学式')
         setUploading(false)
         return
       }
+
+      console.log('アップロードするデータ:', records.slice(0, 5), '... (合計', records.length, '件)')
 
       // Supabaseにupsert
       const { error } = await supabase
@@ -102,16 +128,33 @@ export default function AdminDashboard() {
         .upsert(records, { onConflict: 'date' })
 
       if (error) {
-        alert('エラーが発生しました: ' + error.message)
+        console.error('CSVアップロードエラー（詳細）:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          fullError: error
+        })
+        
+        // エラーメッセージを詳細に表示
+        let errorMessage = 'エラーが発生しました: ' + error.message
+        if (error.code === 'PGRST205' || error.message.includes('schema cache')) {
+          errorMessage += '\n\nスキーマキャッシュの問題の可能性があります。\n数秒待ってから再度お試しください。'
+        } else if (error.code === '42P01' || error.message.includes('does not exist')) {
+          errorMessage += '\n\nannual_schedulesテーブルが作成されていません。\n\n【解決方法】\n1. Supabase Dashboard の SQL Editor を開く\n2. CREATE_ANNUAL_SCHEDULES_TABLE.sql の内容をコピー\n3. SQL Editor に貼り付けて実行'
+        }
+        
+        alert(errorMessage)
       } else {
-        alert(`${records.length}件の勤務表データを登録しました！`)
+        alert(`✅ ${records.length}件の勤務表データを登録しました！\n\nカレンダーに反映されます。`)
         setCsvFile(null)
         // ファイル入力をリセット
         const fileInput = document.getElementById('csv-file-input') as HTMLInputElement
         if (fileInput) fileInput.value = ''
       }
     } catch (err) {
-      alert('CSVの読み込みに失敗しました: ' + err)
+      console.error('CSVの読み込みエラー:', err)
+      alert('CSVの読み込みに失敗しました: ' + (err instanceof Error ? err.message : String(err)))
     }
     setUploading(false)
   }

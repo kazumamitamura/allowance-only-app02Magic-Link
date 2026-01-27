@@ -21,6 +21,8 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<number | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<Document | null>(null)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -87,6 +89,44 @@ export default function DocumentsPage() {
       console.error('文書取得中の予期しないエラー:', err)
     }
     setLoading(false)
+  }
+
+  const getPdfUrl = async (document: Document): Promise<string | null> => {
+    try {
+      // Supabase Storageから署名付きURLを取得（公開バケットでない場合でも動作）
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(document.file_path, 3600) // 1時間有効
+
+      if (error) {
+        console.error('PDF URL取得エラー:', error)
+        // 公開URLを試す
+        const { data: publicData } = await supabase.storage
+          .from('documents')
+          .getPublicUrl(document.file_path)
+        
+        if (publicData) {
+          return publicData.publicUrl
+        }
+        return null
+      }
+
+      return data.signedUrl
+    } catch (err) {
+      console.error('PDF URL取得中の予期しないエラー:', err)
+      return null
+    }
+  }
+
+  const viewDocument = async (document: Document) => {
+    setViewingDoc(document)
+    const url = await getPdfUrl(document)
+    if (url) {
+      setPdfUrl(url)
+    } else {
+      alert('PDFの表示に失敗しました。ダウンロードをお試しください。')
+      setViewingDoc(null)
+    }
   }
 
   const downloadDocument = async (document: Document) => {
@@ -189,26 +229,35 @@ export default function DocumentsPage() {
                         <span>📅 {formatDate(doc.created_at)}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => downloadDocument(doc)}
-                      disabled={downloading === doc.id}
-                      className="ml-4 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition flex items-center gap-2"
-                    >
-                      {downloading === doc.id ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>ダウンロード中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>⬇️</span>
-                          <span>ダウンロード</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => viewDocument(doc)}
+                        className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                      >
+                        <span>👁️</span>
+                        <span>閲覧</span>
+                      </button>
+                      <button
+                        onClick={() => downloadDocument(doc)}
+                        disabled={downloading === doc.id}
+                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition flex items-center gap-2"
+                      >
+                        {downloading === doc.id ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>ダウンロード中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>⬇️</span>
+                            <span>ダウンロード</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -216,6 +265,63 @@ export default function DocumentsPage() {
           )}
         </div>
       </div>
+
+      {/* PDF表示モーダル */}
+      {viewingDoc && pdfUrl && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setViewingDoc(null)
+            setPdfUrl(null)
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* ヘッダー */}
+            <div className="bg-slate-800 text-white p-4 rounded-t-xl flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">{viewingDoc.title}</h3>
+                <p className="text-sm text-slate-300">{viewingDoc.file_name}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setViewingDoc(null)
+                  setPdfUrl(null)
+                }}
+                className="text-white hover:text-red-300 text-2xl font-bold transition"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* PDF表示エリア */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={pdfUrl}
+                className="w-full h-full border-0"
+                title={viewingDoc.title}
+              />
+            </div>
+
+            {/* フッター */}
+            <div className="bg-slate-100 p-4 rounded-b-xl flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <span>📊 {formatFileSize(viewingDoc.file_size)}</span>
+                <span className="ml-4">📅 {formatDate(viewingDoc.created_at)}</span>
+              </div>
+              <button
+                onClick={() => downloadDocument(viewingDoc)}
+                disabled={downloading === viewingDoc.id}
+                className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              >
+                {downloading === viewingDoc.id ? 'ダウンロード中...' : '⬇️ ダウンロード'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

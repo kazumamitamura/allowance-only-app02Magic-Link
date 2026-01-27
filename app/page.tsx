@@ -404,8 +404,32 @@ export default function Home() {
   useEffect(() => {
     const updateDayInfo = async () => {
       const dateStr = formatDate(selectedDate)
-      const calData = schoolCalendar.find(c => c.date === dateStr)
-      const type = calData?.day_type || (selectedDate.getDay() % 6 === 0 ? '休日(仮)' : '勤務日(仮)')
+      
+      // annual_schedulesを優先的に使用（CSVアップロードされたデータ）
+      const annualSchedule = annualSchedules.find(s => s.date === dateStr)
+      let type = ''
+      
+      if (annualSchedule) {
+        // work_typeに基づいてday_typeを決定
+        const workType = annualSchedule.work_type.toUpperCase()
+        if (workType === 'A' || workType === 'B') {
+          type = '勤務日'
+        } else if (workType === '休' || workType === '祝') {
+          type = '休日'
+        } else {
+          type = '勤務日' // デフォルト
+        }
+        
+        // 行事名がある場合は追加
+        if (annualSchedule.event_name) {
+          type += `(${annualSchedule.event_name})`
+        }
+      } else {
+        // annual_schedulesがない場合はschoolCalendarを使用
+        const calData = schoolCalendar.find(c => c.date === dateStr)
+        type = calData?.day_type || (selectedDate.getDay() % 6 === 0 ? '休日(仮)' : '勤務日(仮)')
+      }
+      
       setDayType(type)
 
       const allowance = allowances.find(a => a.date === dateStr)
@@ -460,7 +484,7 @@ export default function Home() {
       }
     }
     updateDayInfo()
-  }, [selectedDate, allowances, schoolCalendar])
+  }, [selectedDate, allowances, schoolCalendar, annualSchedules])
 
   useEffect(() => {
     console.log('=== 支給予定額の計算開始 ===')
