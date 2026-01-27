@@ -18,9 +18,27 @@ export async function uploadDocument(data: {
   }
 
   try {
-    // ファイル名を生成（タイムスタンプ + 元のファイル名）
+    // ファイル名をサニタイズ（特殊文字を削除または置換）
+    const sanitizeFileName = (name: string): string => {
+      // 拡張子を取得
+      const lastDot = name.lastIndexOf('.')
+      const extension = lastDot > 0 ? name.substring(lastDot) : ''
+      const baseName = lastDot > 0 ? name.substring(0, lastDot) : name
+      
+      // 特殊文字を削除または置換
+      // 許可する文字: 英数字、ひらがな、カタカナ、漢字、一部の記号（-、_、.）
+      const sanitized = baseName
+        .replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBF\-\_\.]/g, '') // 特殊文字を削除
+        .replace(/\s+/g, '_') // スペースをアンダースコアに置換
+        .substring(0, 200) // 長すぎるファイル名を切り詰め
+      
+      return sanitized + extension
+    }
+    
+    // ファイル名を生成（タイムスタンプ + サニタイズされたファイル名）
     const timestamp = Date.now()
-    const fileName = `${timestamp}_${data.file.name}`
+    const sanitizedName = sanitizeFileName(data.file.name)
+    const fileName = `${timestamp}_${sanitizedName}`
     const filePath = fileName
 
     // Supabase Storageにアップロード
@@ -33,11 +51,22 @@ export async function uploadDocument(data: {
       })
 
     if (uploadError) {
-      console.error('Storageアップロードエラー:', uploadError)
+      console.error('Storageアップロードエラー（詳細）:', {
+        message: uploadError.message,
+        statusCode: uploadError.statusCode,
+        error: uploadError
+      })
+      
       // バケットが存在しない場合の詳細なエラーメッセージ
       if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('not found')) {
         return { error: 'ファイルのアップロードに失敗しました: Bucket not found\n\nSupabase Dashboard で Storage バケット「documents」を作成してください。\n詳細は SETUP_INQUIRIES_AND_DOCUMENTS.md を参照してください。' }
       }
+      
+      // Invalid key エラーの場合
+      if (uploadError.message.includes('Invalid key') || uploadError.message.includes('invalid')) {
+        return { error: 'ファイルのアップロードに失敗しました: ファイル名に無効な文字が含まれています。\n\nファイル名を変更して再度お試しください。\n\nエラー詳細: ' + uploadError.message }
+      }
+      
       return { error: 'ファイルのアップロードに失敗しました: ' + uploadError.message }
     }
 
