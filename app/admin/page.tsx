@@ -81,6 +81,29 @@ export default function AdminDashboard() {
       // ヘッダー行をスキップ
       const dataLines = lines.slice(1)
       
+      // 日付形式を変換する関数（YYYY/MM/DD → YYYY-MM-DD）
+      const normalizeDate = (dateStr: string): string | null => {
+        if (!dateStr) return null
+        
+        // YYYY-MM-DD形式の場合はそのまま
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateStr
+        }
+        
+        // YYYY/MM/DD形式の場合は変換
+        if (dateStr.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+          return dateStr.replace(/\//g, '-')
+        }
+        
+        // MM/DD/YYYY形式の場合も対応
+        const slashMatch = dateStr.match(/^(\d{4})\/(\d{2})\/(\d{2})$/)
+        if (slashMatch) {
+          return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]}`
+        }
+        
+        return null
+      }
+      
       const records = dataLines.map(line => {
         // CSVのパース（カンマ区切り、ダブルクォート対応）
         const parts: string[] = []
@@ -102,20 +125,28 @@ export default function AdminDashboard() {
         
         const [date, workType, eventName] = parts.map(v => v.replace(/^"|"$/g, '').trim())
         
-        // 日付の形式を確認（YYYY-MM-DD形式）
-        if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // 日付の形式を変換・確認
+        const normalizedDate = normalizeDate(date)
+        if (!normalizedDate) {
+          console.warn('無効な日付形式:', date)
+          return null
+        }
+        
+        // 勤務区分が空の場合はスキップ
+        if (!workType || workType.trim() === '') {
+          console.warn('勤務区分が空:', date)
           return null
         }
         
         return {
-          date,
-          work_type: workType || '',
-          event_name: eventName || ''
+          date: normalizedDate,
+          work_type: workType.trim(),
+          event_name: (eventName || '').trim()
         }
       }).filter((r): r is { date: string; work_type: string; event_name: string } => r !== null) // nullを除外
 
       if (records.length === 0) {
-        alert('有効なデータが見つかりませんでした。\n\nCSV形式: 日付,勤務区分,行事名\n例: 2025-04-01,A,入学式')
+        alert('有効なデータが見つかりませんでした。\n\nCSV形式: 日付,勤務区分,行事名\n例: 2025-04-01,A,入学式\nまたは: 2025/04/01,A,入学式\n\n※行事名は省略可能です')
         setUploading(false)
         return
       }
