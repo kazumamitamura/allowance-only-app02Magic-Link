@@ -39,18 +39,24 @@ export function handleSupabaseError(error: SupabaseError | null): string {
     )
   }
 
-  // テーブルが存在しないエラー
+  // テーブルが存在しないエラー（404エラーを含む）
   if (
     errorMessage.includes('does not exist') ||
     errorMessage.includes('relation') ||
     errorMessage.includes('table') ||
+    errorMessage.includes('404') ||
+    errorMessage.includes('not found') ||
+    errorMessage.includes('Could not find') ||
     errorCode === '42P01' ||
     errorCode === 'PGRST116'
   ) {
     return (
-      'データの取得に失敗しました: テーブルが作成されていません。\n\n' +
+      'データの取得に失敗しました: テーブルが見つかりません。\n\n' +
       '【解決方法】\n' +
-      '管理者にお問い合わせください。\n\n' +
+      '1. Supabaseのダッシュボードでテーブルが作成されているか確認してください\n' +
+      '2. テーブル名が正しいか確認してください（allowances）\n' +
+      '3. RLSポリシーが正しく設定されているか確認してください\n' +
+      '4. それでも解決しない場合は、管理者にお問い合わせください\n\n' +
       'エラー詳細:\n' +
       'コード: ' + errorCode + '\n' +
       'メッセージ: ' + errorMessage

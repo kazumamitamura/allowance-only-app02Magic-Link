@@ -381,6 +381,7 @@ export default function Home() {
   const fetchData = async (uid: string) => {
     console.log('=== 手当データ取得開始 ===')
     console.log('ユーザーID:', uid)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
     try {
       const { data: allowData, error } = await supabase
         .from('allowances')
@@ -389,7 +390,22 @@ export default function Home() {
         .order('date', { ascending: false })
     
       if (error) {
+        // エラーの詳細をログに出力
+        console.error('[手当データ取得エラー詳細]', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          fullError: error
+        })
+        
         logSupabaseError('手当データ取得', error)
+        
+        // 404エラーやテーブルが見つからないエラーの場合は警告を表示
+        if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('not found') || error.message?.includes('Could not find')) {
+          console.error('⚠️ テーブル "allowances" が見つかりません。Supabaseの設定を確認してください。')
+        }
+        
         // エラーが発生しても空配列を設定して続行（ユーザー体験を優先）
         setAllowances([])
     } else {
@@ -465,7 +481,23 @@ export default function Home() {
     const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const { data, error } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
       if (error) {
+        // エラーの詳細をログに出力
+        console.error('[申請状態取得エラー詳細]', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          fullError: error,
+          year_month: ym
+        })
+        
         logSupabaseError('申請状態取得', error)
+        
+        // 404エラーやテーブルが見つからないエラーの場合は警告を表示（ただし、テーブルが存在しない場合は正常な動作として扱う）
+        if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('not found') || error.message?.includes('Could not find')) {
+          console.warn('⚠️ テーブル "monthly_applications" が見つかりません。初回申請の場合は正常です。')
+        }
+        
         setAllowanceStatus('draft')
       } else {
     const allow = data?.find(d => d.application_type === 'allowance')
@@ -691,6 +723,8 @@ export default function Home() {
         }
         
         console.log('挿入データ:', dateStr, insertData)
+        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+        console.log('ユーザーID:', user.id)
         
         // リトライロジック（スキーマキャッシュエラー対策）
         let insertError = null
@@ -699,16 +733,32 @@ export default function Home() {
         const retryDelay = 2000 // 2秒
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          console.log(`[保存試行 ${attempt}/${maxRetries}] ${dateStr}`)
+          
           // 既存データを削除
-          const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
-          if (deleteError && deleteError.code !== 'PGRST205') {
-            console.error('削除エラー:', dateStr, deleteError)
+          const deleteResult = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+          if (deleteResult.error && deleteResult.error.code !== 'PGRST205') {
+            console.error('削除エラー:', dateStr, deleteResult.error)
+            // 404エラーの場合はテーブルが存在しない可能性があるが、続行
+            if (deleteResult.error.code === 'PGRST116' || deleteResult.error.message?.includes('404')) {
+              console.warn('⚠️ テーブルが見つかりませんが、続行します...')
+            }
+          } else if (!deleteResult.error) {
+            console.log('既存データ削除成功:', dateStr)
           }
           
           // データを挿入
           const result = await supabase.from('allowances').insert(insertData).select()
           insertError = result.error
           insertedData = result.data
+          
+          console.log(`[挿入結果 ${attempt}/${maxRetries}]`, {
+            success: !insertError,
+            error: insertError ? {
+              code: insertError.code,
+              message: insertError.message
+            } : null
+          })
           
           // スキーマキャッシュエラー（PGRST205）の場合はリトライ
           if (insertError && (insertError.code === 'PGRST205' || insertError.message?.includes('schema cache'))) {
@@ -724,9 +774,24 @@ export default function Home() {
         }
         
         if (insertError) {
+          // エラーの詳細をログに出力
+          console.error(`[手当データ保存エラー詳細 (${dateStr})]`, {
+            code: insertError.code,
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint,
+            fullError: insertError
+          })
+          
           logSupabaseError(`手当データ保存 (${dateStr})`, insertError)
           const errorMessage = handleSupabaseError(insertError)
-          alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}`)
+          
+          // 404エラーの場合は追加情報を表示
+          if (insertError.code === 'PGRST116' || insertError.message?.includes('404') || insertError.message?.includes('not found')) {
+            alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}\n\n【追加情報】\nテーブル 'allowances' が見つかりません。\nSupabaseの設定を確認してください。`)
+          } else {
+            alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}`)
+          }
           return
         }
         
