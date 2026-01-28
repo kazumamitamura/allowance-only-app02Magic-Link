@@ -813,7 +813,7 @@ export default function Home() {
               insertError.message?.includes('404') || 
               insertError.message?.includes('not found') ||
               insertError.message?.includes('Could not find the table')) {
-            alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}\n\n【重要】\nテーブル 'allowances' がSupabaseに存在しないか、スキーマキャッシュが更新されていません。\n\n【解決方法】\n1. Supabaseダッシュボードでテーブル 'allowances' が作成されているか確認してください\n2. テーブルが存在する場合、Supabaseのスキーマキャッシュをリフレッシュしてください\n3. RLSポリシーが正しく設定されているか確認してください\n4. それでも解決しない場合は、管理者にお問い合わせください`)
+            alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}\n\n【重要】\nテーブル 'allowances' がSupabaseに存在しない可能性があります。\n\n【解決方法】\n1. Supabaseダッシュボード → SQL Editor を開く\n2. CREATE_ALL_TABLES.sql の内容を実行してテーブルを作成\n3. 数秒待ってからページをリロード\n4. それでも解決しない場合は、管理者にお問い合わせください\n\n※テーブル作成SQLファイルはプロジェクトのルートディレクトリにあります`)
           } else {
             alert(`${dateStr} の保存に失敗しました:\n\n${errorMessage}`)
           }
