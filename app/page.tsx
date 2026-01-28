@@ -662,12 +662,6 @@ export default function Home() {
       for (const date of targetDates) {
         const dateStr = formatDate(date)
         
-        // 既存データを削除
-        const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
-        if (deleteError) {
-          console.error('削除エラー:', dateStr, deleteError)
-        }
-
         // destination_detailの決定
         let detailValue = ''
         if (activityId === 'CUSTOM') {
@@ -698,7 +692,36 @@ export default function Home() {
         
         console.log('挿入データ:', dateStr, insertData)
         
-        const { data: insertedData, error: insertError } = await supabase.from('allowances').insert(insertData).select()
+        // リトライロジック（スキーマキャッシュエラー対策）
+        let insertError = null
+        let insertedData = null
+        const maxRetries = 3
+        const retryDelay = 2000 // 2秒
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          // 既存データを削除
+          const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+          if (deleteError && deleteError.code !== 'PGRST205') {
+            console.error('削除エラー:', dateStr, deleteError)
+          }
+          
+          // データを挿入
+          const result = await supabase.from('allowances').insert(insertData).select()
+          insertError = result.error
+          insertedData = result.data
+          
+          // スキーマキャッシュエラー（PGRST205）の場合はリトライ
+          if (insertError && (insertError.code === 'PGRST205' || insertError.message?.includes('schema cache'))) {
+            if (attempt < maxRetries) {
+              console.warn(`スキーマキャッシュエラー検出 (試行 ${attempt}/${maxRetries})。${retryDelay}ms待機して再試行します...`)
+              await new Promise(resolve => setTimeout(resolve, retryDelay))
+              continue
+            }
+          } else {
+            // スキーマキャッシュエラー以外、または成功した場合はループを抜ける
+            break
+          }
+        }
         
         if (insertError) {
           logSupabaseError(`手当データ保存 (${dateStr})`, insertError)
@@ -713,8 +736,30 @@ export default function Home() {
       // 手当なしの場合は削除のみ
       for (const date of targetDates) {
         const dateStr = formatDate(date)
-        const { error: deleteError } = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
-        if (deleteError) {
+        
+        // リトライロジック（スキーマキャッシュエラー対策）
+        const maxRetries = 3
+        const retryDelay = 2000 // 2秒
+        let deleteError = null
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          const result = await supabase.from('allowances').delete().eq('user_id', user.id).eq('date', dateStr)
+          deleteError = result.error
+          
+          // スキーマキャッシュエラー（PGRST205）の場合はリトライ
+          if (deleteError && (deleteError.code === 'PGRST205' || deleteError.message?.includes('schema cache'))) {
+            if (attempt < maxRetries) {
+              console.warn(`スキーマキャッシュエラー検出 (試行 ${attempt}/${maxRetries})。${retryDelay}ms待機して再試行します...`)
+              await new Promise(resolve => setTimeout(resolve, retryDelay))
+              continue
+            }
+          } else {
+            // スキーマキャッシュエラー以外、または成功した場合はループを抜ける
+            break
+          }
+        }
+        
+        if (deleteError && deleteError.code !== 'PGRST205') {
           console.error('削除エラー:', dateStr, deleteError)
         }
       }
