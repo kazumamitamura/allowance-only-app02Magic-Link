@@ -724,6 +724,12 @@ export default function Home() {
     setShowInputModal(false)
     setSelectedDates([]) // 複数選択をクリア
     
+    // selectedDateを保持（1日にリセットしない）
+    // 複数選択の場合は最初の日付を保持、単一選択の場合はその日付を保持
+    if (targetDates.length > 0) {
+      setSelectedDate(targetDates[0])
+    }
+    
     const message = targetDates.length > 1 
       ? `${targetDates.length}日分のデータを保存しました` 
       : '保存しました'
@@ -791,8 +797,24 @@ export default function Home() {
   const handleLogout = async () => { 
     await logout()
   }
-  const handlePrevMonth = () => { const d = new Date(selectedDate); d.setMonth(d.getMonth() - 1); setSelectedDate(d) }
-  const handleNextMonth = () => { const d = new Date(selectedDate); d.setMonth(d.getMonth() + 1); setSelectedDate(d) }
+  const handlePrevMonth = () => { 
+    const d = new Date(selectedDate)
+    const currentDay = d.getDate()
+    d.setMonth(d.getMonth() - 1)
+    // 新しい月に同じ日付が存在する場合は保持、存在しない場合は1日に設定
+    const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    d.setDate(Math.min(currentDay, maxDay))
+    setSelectedDate(d)
+  }
+  const handleNextMonth = () => { 
+    const d = new Date(selectedDate)
+    const currentDay = d.getDate()
+    d.setMonth(d.getMonth() + 1)
+    // 新しい月に同じ日付が存在する場合は保持、存在しない場合は1日に設定
+    const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    d.setDate(Math.min(currentDay, maxDay))
+    setSelectedDate(d)
+  }
   
   // カレンダー日付クリック時の処理
   const handleDateClick = (date: Date, event?: React.MouseEvent) => {
@@ -1096,7 +1118,17 @@ export default function Home() {
           <Calendar 
             value={selectedDate} 
             activeStartDate={selectedDate} 
-            onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setSelectedDate(activeStartDate)} 
+            onActiveStartDateChange={({ activeStartDate }) => {
+              // activeStartDateが変更された場合でも、selectedDateの日付を保持
+              if (activeStartDate) {
+                const currentDay = selectedDate.getDate()
+                const newDate = new Date(activeStartDate)
+                // 新しい月に同じ日付が存在する場合は保持、存在しない場合は1日に設定
+                const maxDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate()
+                newDate.setDate(Math.min(currentDay, maxDay))
+                setSelectedDate(newDate)
+              }
+            }} 
             locale="ja-JP" 
             tileContent={getTileContent} 
             className="w-full border-none calendar-large" 
