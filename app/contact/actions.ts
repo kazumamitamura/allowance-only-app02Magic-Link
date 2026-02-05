@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
-import { sendInquiryNotification } from './email-service'
+import { sendAutoReplyToUser, sendInquiryNotification } from './email-service'
 
 export async function submitInquiry(data: {
   subject: string
@@ -111,7 +111,18 @@ export async function submitInquiry(data: {
       }
     }
 
-    // 管理者にメール通知を送信
+    // 送信者へ自動返信（受け付けました・しばらくお時間をいただきます）
+    try {
+      await sendAutoReplyToUser({
+        userEmail: data.userEmail,
+        userName: data.userName,
+        subject: data.subject
+      })
+    } catch (emailError) {
+      console.error('自動返信メール送信エラー:', emailError)
+    }
+
+    // 管理者に問い合わせ内容をメール通知
     try {
       await sendInquiryNotification({
         inquiryId: inquiry.id,
@@ -121,8 +132,7 @@ export async function submitInquiry(data: {
         userName: data.userName
       })
     } catch (emailError) {
-      console.error('メール送信エラー:', emailError)
-      // メール送信に失敗しても問い合わせは保存されているので続行
+      console.error('管理者通知メール送信エラー:', emailError)
     }
 
     return { success: true, inquiryId: inquiry.id }

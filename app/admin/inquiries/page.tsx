@@ -186,6 +186,25 @@ export default function InquiriesPage() {
     })
   }
 
+  /** Gmail等で返信するための mailto URL（宛先・件名・本文をセット） */
+  const getMailtoUrl = (inquiry: Inquiry) => {
+    const subject = `Re: ${inquiry.subject}`
+    const body = [
+      '',
+      '---------- お客様からのお問い合わせ ----------',
+      `件名: ${inquiry.subject}`,
+      `送信日時: ${formatDate(inquiry.created_at)}`,
+      '',
+      inquiry.message,
+      '----------------------------------------------',
+      ''
+    ].join('\n')
+    const params = new URLSearchParams()
+    params.set('subject', subject)
+    params.set('body', body)
+    return `mailto:${inquiry.user_email}?${params.toString()}`
+  }
+
   if (!isAuthorized) return <div className="p-10 text-center">確認中...</div>
 
   return (
@@ -351,13 +370,15 @@ export default function InquiriesPage() {
                   </div>
                 </div>
 
-                {/* メール返信リンク */}
+                {/* Gmailで返信（宛先・件名・本文を入れてメールクライアントを開く） */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <a
-                    href={`mailto:${selectedInquiry.user_email}?subject=Re: ${selectedInquiry.subject}`}
+                    href={getMailtoUrl(selectedInquiry)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="block w-full text-center px-4 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition"
                   >
-                    📧 メールで返信
+                    📧 Gmailで返信
                   </a>
                 </div>
               </div>
