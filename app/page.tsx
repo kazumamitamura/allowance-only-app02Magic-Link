@@ -1183,6 +1183,11 @@ export default function Home() {
                       {userName ? `👤 ${userName.length > 6 ? userName.substring(0, 6) + '...' : userName}` : '⚙️ 氏名登録'}
                   </button>
                   
+                  <a href="/manual" className="text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 sm:px-5 py-2.5 rounded-lg border-2 border-emerald-400 hover:from-emerald-600 hover:to-emerald-700 active:from-emerald-700 active:to-emerald-800 transition-all touch-manipulation whitespace-nowrap shadow-md hover:shadow-lg transform hover:scale-105 flex items-center gap-1.5">
+                    <span className="text-base">📖</span>
+                    <span>操作マニュアル</span>
+                  </a>
+                  
                   <a href="/documents" className="text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-blue-600 px-4 sm:px-5 py-2.5 rounded-lg border-2 border-blue-400 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 transition-all touch-manipulation whitespace-nowrap shadow-md hover:shadow-lg transform hover:scale-105 flex items-center gap-1.5">
                     <span className="text-base">📄</span>
                     <span>規約閲覧</span>

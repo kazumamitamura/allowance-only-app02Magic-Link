@@ -101,14 +101,14 @@ npm run dev
 
 ---
 
-## 📦 デプロイ
+## 📦 デプロイ（GitHub と Vercel の連携）
 
-### Vercelへのデプロイ
+**詳細手順**: [GITHUB_VERCEL_SETUP.md](./GITHUB_VERCEL_SETUP.md) を参照してください。
 
-1. Vercelアカウントにログイン
-2. GitHubリポジトリを接続
-3. 環境変数を設定（`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`）
-4. デプロイ
+### 概要
+
+- **GitHub**: リモートは `origin` → `https://github.com/kazumamitamura/allowance-simple.git`。変更を反映するには `git add .` → `git commit -m "メッセージ"` → `git push origin main` を実行します。
+- **Vercel**: [vercel.com](https://vercel.com) で GitHub アカウントを連携し、上記リポジトリをインポート。環境変数（`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` など）を設定してデプロイすると、`main` への push のたびに自動デプロイされます。
 
 ### 本番環境URL
 
