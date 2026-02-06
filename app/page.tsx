@@ -1096,20 +1096,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
        {isAdmin && <div className="bg-slate-800 text-white text-center py-3 text-sm font-bold shadow-md"><a href="/admin" className="underline hover:text-blue-300 transition">事務担当者ページへ</a></div>}
 
-      {/* 氏名未登録時のみ表示（登録はアカウントから） */}
-      {!userName && (
-        <div className="bg-amber-50 border-b border-amber-200 py-2 px-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            <span className="text-amber-800 text-sm">帳票用の氏名が未登録です。</span>
-            <button 
-              onClick={() => { setInputLastName(''); setInputFirstName(''); setShowProfileModal(true); }} 
-              className="text-amber-800 font-bold text-sm underline hover:no-underline"
-            >
-              アカウントで登録する
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 氏名は新規登録時のみ入力。修正・変更は「👤 アカウント」から */}
 
       {/* ヘッダー */}
       <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-20">
