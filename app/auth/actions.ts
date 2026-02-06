@@ -156,10 +156,28 @@ export async function signup(formData: FormData) {
 
   console.log('サインアップ成功:', data.user?.id, '確認ステータス:', data.user?.email_confirmed_at)
 
-  // 新規登録時の氏名を帳票用（display_name）として必ず保存
   if (data.user) {
+    // セッションがない場合は先にログインしてからアカウント氏名を保存する
+    if (!data.session) {
+      console.log('セッションなし - 自動ログインを試みます')
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (loginError) {
+        console.error('自動ログイン失敗:', loginError.message)
+        if (loginError.message.includes('Email not confirmed')) {
+          return { error: '登録は完了しましたが、ログインできません。Supabase で「Confirm email」をオフにしてください。詳細は DISABLE_EMAIL_CONFIRMATION.md を参照してください。' }
+        }
+        return { error: `登録は完了しましたが、ログインに失敗しました: ${loginError.message}` }
+      }
+      console.log('自動ログイン成功:', loginData.user?.id)
+    }
+
+    // トリガーで作成された行がDBに反映されるのを待ってから、新規登録時の氏名でアカウント（帳票用）氏名を確実に保存
+    await new Promise(resolve => setTimeout(resolve, 400))
     try {
-      console.log('帳票用氏名を登録:', data.user.id, fullName)
+      console.log('アカウント氏名を登録:', data.user.id, fullName)
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert(
@@ -171,37 +189,25 @@ export async function signup(formData: FormData) {
           { onConflict: 'user_id' }
         )
       if (profileError) {
-        console.error('帳票用氏名の保存エラー:', profileError)
+        console.error('アカウント氏名の保存エラー（リトライ）:', profileError)
+        await new Promise(resolve => setTimeout(resolve, 600))
+        const { error: retryError } = await supabase
+          .from('user_profiles')
+          .upsert(
+            { user_id: data.user.id, email: email, display_name: fullName },
+            { onConflict: 'user_id' }
+          )
+        if (retryError) console.error('アカウント氏名の保存リトライも失敗:', retryError)
+        else console.log('アカウント氏名を登録しました（リトライ成功）')
       } else {
-        console.log('帳票用氏名を登録しました')
+        console.log('アカウント氏名を登録しました')
       }
     } catch (err) {
       console.error('プロフィール保存例外:', err)
     }
-
-    // メール確認が必要な場合、ログインを試みる
-    if (!data.session) {
-      console.log('セッションなし - 自動ログインを試みます')
-      
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      
-      if (loginError) {
-        console.error('自動ログイン失敗:', loginError.message)
-        if (loginError.message.includes('Email not confirmed')) {
-          return { error: '登録は完了しましたが、ログインできません。Supabase で「Confirm email」をオフにしてください。詳細は DISABLE_EMAIL_CONFIRMATION.md を参照してください。' }
-        }
-        return { error: `登録は完了しましたが、ログインに失敗しました: ${loginError.message}` }
-      }
-      
-      console.log('自動ログイン成功:', loginData.user?.id)
-    }
   }
 
-  // セッションが確立されるまで少し待つ
-  await new Promise(resolve => setTimeout(resolve, 1000))
+  await new Promise(resolve => setTimeout(resolve, 500))
 
   // 登録成功、確実にリダイレクト
   console.log('リダイレクト to /')
