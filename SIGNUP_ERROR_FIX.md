@@ -1,5 +1,18 @@
 # 新規登録エラー「Database error saving new user」の対処
 
+## まず試すこと（推奨）
+
+**手当アプリが接続している Supabase プロジェクト**で、次の1本を実行してください。
+
+1. Supabase Dashboard → **SQL Editor** → New query
+2. プロジェクト内の **`RUN_SIGNUP_FIX_ALL.sql`** の内容をすべてコピーして貼り付け
+3. **Run** で実行する（エラーが出ないことを確認）
+4. アプリの新規登録画面でもう一度「新規登録してログイン」を試す
+
+この SQL で **user_profiles テーブルとトリガー** に加え、**profiles テーブルがある場合の NOT NULL/CHECK 制約** もまとめて直します。多くの場合はこれで登録できるようになります。
+
+---
+
 ## 症状
 
 新規登録画面で「新規登録してログイン」を押すと、次のメッセージが表示される：
@@ -7,6 +20,22 @@
 **「登録に失敗しました: Database error saving new user」**
 
 Auth ログに **`/signup | 500: Database error saving new user`** が出ている状態です。
+
+## 以前は登録できていたのに、今エラーが出る場合
+
+以前は新規登録が成功していたのに、今はエラーが出る場合は、**user_profiles テーブルやトリガーが削除された**可能性があります。
+
+### 診断手順
+
+1. Supabase Dashboard → **SQL Editor** → New query
+2. **`CHECK_SIGNUP_STATUS.sql`** の内容をコピーして貼り付け、**Run** で実行
+3. 結果を確認：
+   - **✗** が表示された項目があれば、それが原因です
+   - すべて **✓** でもエラーが出る場合は、**profiles テーブルの NOT NULL 制約**を確認してください
+
+### 対処
+
+診断結果に **✗** がある場合、または原因が分からない場合は、**`RUN_SIGNUP_FIX_ALL.sql`** を実行してください。これで user_profiles とトリガーを再作成し、profiles の制約も緩和します。
 
 ## 重要：どこの Supabase で実行するか
 

@@ -90,13 +90,15 @@ export async function signup(formData: FormData) {
 
   console.log('新規登録試行:', email)
 
-  // Supabase認証での新規登録（トリガー用に app_name / last_name / first_name を送信）
+  // Supabase認証での新規登録
+  // メタデータに app_name を設定（複数アプリで同一Supabaseプロジェクトを共有する際の識別タグ）
+  // トリガー関数側で app_name を参照して処理を分岐可能
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        app_name: 'allowance',
+        app_name: 'haguro-allowance', // アプリ識別タグ（特殊勤務手当管理アプリ）
         last_name: lastName.trim(),
         first_name: firstName.trim(),
         full_name: fullName,
