@@ -77,7 +77,7 @@ export default function LoginPage() {
 
           {/* フォーム */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 氏名（新規登録時のみ） */}
+            {/* 氏名（新規登録時のみ。帳票用氏名として登録され、変更はアカウントから可能） */}
             {isSignUp && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                     disabled={isPending}
                   />
                 </div>
-                <p className="col-span-2 text-xs text-gray-600 mt-1">帳票出力に使用されます</p>
+                <p className="col-span-2 text-xs text-gray-600 mt-1">帳票用の氏名として登録されます。変更はログイン後「👤 アカウント」から行えます。</p>
               </div>
             )}
 

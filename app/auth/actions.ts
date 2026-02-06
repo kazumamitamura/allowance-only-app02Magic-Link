@@ -156,46 +156,27 @@ export async function signup(formData: FormData) {
 
   console.log('サインアップ成功:', data.user?.id, '確認ステータス:', data.user?.email_confirmed_at)
 
-  // ユーザー登録成功後、プロフィールを作成または更新
+  // 新規登録時の氏名を帳票用（display_name）として必ず保存
   if (data.user) {
     try {
-      console.log('プロフィール作成:', data.user.id, email, fullName)
-      
-      // まずinsertを試みる（新規ユーザーの場合）
-      const { error: insertError } = await supabase
+      console.log('帳票用氏名を登録:', data.user.id, fullName)
+      const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: data.user.id,
-          email: email,
-          display_name: fullName,
-        })
-
-      if (insertError) {
-        // 重複エラーの場合はupdate
-        if (insertError.code === '23505' || insertError.message.includes('duplicate')) {
-          console.log('既存プロフィール検出、更新します')
-          const { error: updateError } = await supabase
-            .from('user_profiles')
-            .update({
-              email: email,
-              display_name: fullName,
-            })
-            .eq('user_id', data.user.id)
-
-          if (updateError) {
-            console.error('プロフィール更新エラー:', updateError)
-          } else {
-            console.log('プロフィール更新成功')
-          }
-        } else {
-          console.error('プロフィール作成エラー:', insertError)
-        }
+        .upsert(
+          {
+            user_id: data.user.id,
+            email: email,
+            display_name: fullName,
+          },
+          { onConflict: 'user_id' }
+        )
+      if (profileError) {
+        console.error('帳票用氏名の保存エラー:', profileError)
       } else {
-        console.log('プロフィール作成成功')
+        console.log('帳票用氏名を登録しました')
       }
     } catch (err) {
-      console.error('プロフィール作成例外:', err)
-      // エラーでもログインは成功しているので続行
+      console.error('プロフィール保存例外:', err)
     }
 
     // メール確認が必要な場合、ログインを試みる
