@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own profile" ON public.user_profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own profile" ON public.user_profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own profile" ON public.user_profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "System can insert profile" ON public.user_profiles FOR INSERT TO postgres WITH CHECK (true);
 
 CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
