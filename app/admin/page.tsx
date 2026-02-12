@@ -14,9 +14,7 @@ export default function AdminDashboard() {
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
   const [userRoles, setUserRoles] = useState<string[]>([])
-  const [stats, setStats] = useState({
-    pendingAllowances: 0
-  })
+  const [stats, setStats] = useState<Record<string, number>>({})
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -44,22 +42,8 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     setLoading(true)
-    
-    // 承認待ちの手当申請数を取得
-    const { data: allowanceData, error } = await supabase
-      .from('monthly_applications')
-      .select('*')
-      .eq('application_type', 'allowance')
-      .eq('status', 'submitted')
-
-    if (error) {
-      logSupabaseError('統計データ取得', error)
-    }
-
-    setStats({
-      pendingAllowances: allowanceData?.length || 0
-    })
-    
+    // 承認システム廃止のため、統計は未使用
+    setStats({})
     setLoading(false)
   }
 
@@ -222,15 +206,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto p-8">
-        {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-md border-l-4 border-blue-500">
-            <div className="text-sm font-bold text-slate-500 mb-1">手当申請（承認待ち）</div>
-            <div className="text-4xl font-extrabold text-blue-600">{stats.pendingAllowances}</div>
-            <div className="text-xs text-slate-400 mt-1">件</div>
-          </div>
-        </div>
-
         {/* メインメニューカード */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* 手当管理 */}
@@ -240,17 +215,12 @@ export default function AdminDashboard() {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="text-5xl">💰</div>
-              {stats.pendingAllowances > 0 && (
-                <span className="bg-white text-blue-600 px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                  {stats.pendingAllowances}件
-                </span>
-              )}
             </div>
             <h3 className="text-2xl font-extrabold text-white mb-2">
               手当管理
             </h3>
             <p className="text-blue-100 text-xs mb-3">
-              部活動手当の承認・集計
+              部活動手当のExcel出力・設定
             </p>
             <div className="text-xs text-blue-200 bg-blue-700/30 px-2 py-1 rounded-lg inline-block">
               担当：友野・武田事務長
@@ -411,12 +381,6 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-md">
           <h3 className="text-lg font-bold text-slate-800 mb-4">システム情報</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <div className="text-sm text-slate-500 mb-1">承認待ち（合計）</div>
-              <div className="text-3xl font-bold text-slate-800">
-                {stats.pendingAllowances}件
-              </div>
-            </div>
             <div className="bg-slate-50 p-4 rounded-lg">
               <div className="text-sm text-slate-500 mb-1">アクセス権限</div>
               <div className="text-lg font-bold text-slate-800">

@@ -99,7 +99,7 @@ export default function ManualPage() {
             特殊勤務手当管理アプリ 仕様マニュアル
           </h2>
           <p className="text-gray-700">
-            部活動指導等の手当を入力・申請するためのWebアプリの操作説明です。
+            部活動指導等の手当を入力・集計するためのWebアプリの操作説明です。
           </p>
 
           <hr className="border-slate-200 my-8" />
@@ -111,12 +111,11 @@ export default function ManualPage() {
           <ul className="list-disc pl-6 text-gray-700 space-y-1">
             <li><strong>手当の入力</strong>：日付を選び、業務内容・行き先・運転・宿泊の有無を入力する</li>
             <li><strong>月ごとの集計確認</strong>：支給予定額・合宿日数・遠征日数が自動表示される</li>
-            <li><strong>手当の申請</strong>：月単位で「手当申請」を押して申請する</li>
             <li><strong>複数日の一括入力</strong>：同じ内容で複数日分をまとめて入力できる</li>
           </ul>
           <h4 className="text-base font-semibold text-gray-800 mt-4">1.2 利用の流れ（概要）</h4>
           <p className="text-gray-700">
-            1. ログイン（新規登録時に氏名入力） → 2. カレンダーで日付を選んで手当を入力 → 3. 月末などに「手当申請」で申請。氏名の変更は「👤 アカウント」から
+            1. ログイン（新規登録時に氏名入力） → 2. カレンダーで日付を選んで手当を入力。氏名の変更は「👤 アカウント」から
           </p>
           </ManualSection>
 
@@ -179,7 +178,6 @@ export default function ManualPage() {
                 <tr><td className="border border-slate-200 px-3 py-2">‹ ○年○月 ›</td><td className="border border-slate-200 px-3 py-2">月の切り替え。‹で前月、›で次月。</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">支給予定額 ¥○○○</td><td className="border border-slate-200 px-3 py-2">表示中の月の手当合計（自動計算）</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">合宿：○日 / 遠征：○日</td><td className="border border-slate-200 px-3 py-2">その月の合宿・遠征の日数</td></tr>
-                <tr><td className="border border-slate-200 px-3 py-2">💰 手当申請</td><td className="border border-slate-200 px-3 py-2">その月の手当を「申請」するボタン（下書きのときだけ押せる）</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">👤 アカウント</td><td className="border border-slate-200 px-3 py-2">氏名の登録・変更（新規登録時に入力した氏名は自動で登録されます）</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">規約閲覧</td><td className="border border-slate-200 px-3 py-2">手当規約のページへ移動</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">お問い合わせ</td><td className="border border-slate-200 px-3 py-2">問い合わせページへ移動</td></tr>
@@ -200,7 +198,7 @@ export default function ManualPage() {
           <h4 className="text-base font-semibold text-gray-800 mt-4">3.3 手当履歴（画面下部）</h4>
           <ul className="list-disc pl-6 text-gray-700 space-y-1">
             <li>表示中の月に入力した手当が、日付・業務内容・金額の一覧で表示される</li>
-            <li>各行のゴミ箱アイコンで、その日付の手当を削除できる（申請前のみ）</li>
+            <li>各行のゴミ箱アイコンで、その日付の手当を削除できる</li>
           </ul>
           </ManualSection>
 
@@ -261,7 +259,7 @@ export default function ManualPage() {
             <li><strong>編集</strong>：同じ日付を再度クリックして入力画面を開き、内容を変えて保存する</li>
             <li><strong>削除</strong>：トップ画面下部の「○月の手当履歴」で、該当行のゴミ箱アイコンをクリックして削除する</li>
           </ul>
-          <p className="text-gray-700 text-sm">※申請済みの月は編集・削除できません。</p>
+          <p className="text-gray-700 text-sm">※入力した手当はいつでも編集・削除できます。</p>
           </ManualSection>
 
           <hr className="border-slate-200 my-8" />
@@ -283,35 +281,19 @@ export default function ManualPage() {
           <ManualImage fig={6} />
           <h4 className="text-base font-semibold text-gray-800 mt-4">5.2 注意点</h4>
           <ul className="list-disc pl-6 text-gray-700 space-y-1">
-            <li>選択した日の中に<strong>申請済み</strong>の日があると、「内容を入力」時に注意メッセージが出ます</li>
+            <li>選択した日を確認し、「内容を入力」で同じ内容を一括入力します</li>
             <li>選択モードをやめるときは、案内バーの<strong>「✕」</strong>をクリックする</li>
           </ul>
           </ManualSection>
 
           <hr className="border-slate-200 my-8" />
 
-          {/* 6. 手当の申請 */}
-          <ManualSection searchQuery={searchQuery} searchText="申請 確定 承認 申請中 手当申請 ダイアログ 承認済 申請しました">
-          <h3 className="text-lg font-bold text-gray-900 mt-8">6. 手当の申請</h3>
-          <h4 className="text-base font-semibold text-gray-800 mt-4">6.1 申請の意味</h4>
-          <ul className="list-disc pl-6 text-gray-700 space-y-1">
-            <li>その月の手当を「確定して申請する」操作です</li>
-            <li>申請すると、<strong>承認されるまで手当の編集はできません</strong></li>
-            <li>申請後は画面で「💰 申請中」と表示されます</li>
-          </ul>
-          <h4 className="text-base font-semibold text-gray-800 mt-4">6.2 申請の手順</h4>
-          <ol className="list-decimal pl-6 text-gray-700 space-y-1">
-            <li>申請したい月の手当を<strong>すべて入力</strong>する</li>
-            <li>トップ画面でその月を表示した状態で、<strong>「💰 手当申請」</strong>ボタンをクリックする</li>
-            <li>確認ダイアログで件数・合計金額を確認し、<strong>OK</strong>で申請する</li>
-            <li>「手当を申請しました」と表示されれば完了</li>
-          </ol>
-          <ManualImage fig={7} />
-          <h4 className="text-base font-semibold text-gray-800 mt-4">6.3 申請後の状態</h4>
-          <ul className="list-disc pl-6 text-gray-700 space-y-1">
-            <li><strong>申請中</strong>：承認待ち。手当の入力・編集・削除はできない</li>
-            <li><strong>承認済</strong>：「💰 承認済」と表示される。内容の変更は不可</li>
-          </ul>
+          {/* 6. 手当の入力について（申請・承認は行いません） */}
+          <ManualSection searchQuery={searchQuery} searchText="手当 入力 保存 編集 削除 集計">
+          <h3 className="text-lg font-bold text-gray-900 mt-8">6. 手当の入力について</h3>
+          <p className="text-gray-700">
+            手当は日付ごとに入力・保存すると、その月の支給予定額や合宿・遠征日数として自動で集計されます。申請・承認の手続きはありません。入力した内容はいつでも編集・削除できます。
+          </p>
           </ManualSection>
 
           <hr className="border-slate-200 my-8" />
@@ -342,7 +324,7 @@ export default function ManualPage() {
           </ol>
           <p className="text-gray-700 text-sm mt-2">💡 エラーメッセージが出る場合は、その内容も件名やメッセージに含めると対応しやすくなります。</p>
           <h4 className="text-base font-semibold text-gray-800 mt-4">7.4 事務担当者（管理者）向けページ</h4>
-          <p className="text-gray-700">管理者用メールアドレスでログインしている場合、画面上部に<strong>「事務担当者ページへ」</strong>のリンクが表示されます。クリックすると、承認・Excel出力・設定などの管理機能があるページに移動します。（一般ユーザー向けマニュアルでは、詳細は「管理者マニュアル」に任せてよいです）</p>
+          <p className="text-gray-700">管理者用メールアドレスでログインしている場合、画面上部に<strong>「事務担当者ページへ」</strong>のリンクが表示されます。クリックすると、Excel出力・設定などの管理機能があるページに移動します。（一般ユーザー向けマニュアルでは、詳細は「管理者マニュアル」に任せてよいです）</p>
           </ManualSection>
 
           <hr className="border-slate-200 my-8" />
@@ -354,11 +336,9 @@ export default function ManualPage() {
           <p className="text-gray-700 text-sm">その日が<strong>休日として判定されているか</strong>を確認してください。土日・祝日は自動で休日になります。年間予定で「勤務日」になっている日は休日扱いになりません。</p>
           <p className="text-gray-700 font-medium mt-3">Q2. 保存すると「テーブルが見つかりません」と出る</p>
           <p className="text-gray-700 text-sm">データベース（Supabase）に<strong>allowances</strong>などのテーブルがまだない可能性があります。管理者に連絡し、テーブル作成（CREATE_ALL_TABLES.sql の実行）を依頼してください。</p>
-          <p className="text-gray-700 font-medium mt-3">Q3. 入力・編集できる期限はいつまで？</p>
-          <p className="text-gray-700 text-sm">日付による締め切りはありません。ただし、<strong>手当申請</strong>を送信した月は申請済みのため編集・削除できません。内容を直したい場合は管理者に連絡し、差し戻しの案内を受けてください。</p>
-          <p className="text-gray-700 font-medium mt-3">Q4. 申請したあとで内容を直したい</p>
-          <p className="text-gray-700 text-sm">申請後は本人では編集できません。<strong>管理者に連絡</strong>し、いったん差し戻し（または対応方法）の案内を受けてください。</p>
-          <p className="text-gray-700 font-medium mt-3">Q5. 複数日まとめて入力で、一部の日だけ内容を変えたい</p>
+          <p className="text-gray-700 font-medium mt-3">Q3. 入力した内容を直したい</p>
+          <p className="text-gray-700 text-sm">いつでも編集・削除できます。該当する日付をカレンダーでクリックし、入力画面で修正して保存するか、履歴のゴミ箱アイコンで削除してください。</p>
+          <p className="text-gray-700 font-medium mt-3">Q4. 複数日まとめて入力で、一部の日だけ内容を変えたい</p>
           <p className="text-gray-700 text-sm">まとめて入力したあと、<strong>変更したい日だけ</strong>カレンダーでその日をクリックし、1日分の入力画面で内容を修正して保存してください。</p>
           </ManualSection>
 
@@ -384,7 +364,6 @@ export default function ManualPage() {
                 <tr><td className="border border-slate-200 px-3 py-2">図4</td><td className="border border-slate-200 px-3 py-2">4.1 入力の流れの直後</td><td className="border border-slate-200 px-3 py-2">手当入力モーダル全体（1日分の入力画面）</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">図5</td><td className="border border-slate-200 px-3 py-2">4.3 支給予定額と保存の直後</td><td className="border border-slate-200 px-3 py-2">入力画面の下部（計算内訳・支給予定額・保存ボタン）</td></tr>
                 <tr><td className="border border-slate-200 px-3 py-2">図6</td><td className="border border-slate-200 px-3 py-2">5.1 手順の直後</td><td className="border border-slate-200 px-3 py-2">複数日選択モード（案内バー＋カレンダー）</td></tr>
-                <tr><td className="border border-slate-200 px-3 py-2">図7</td><td className="border border-slate-200 px-3 py-2">6.2 申請の手順の直後</td><td className="border border-slate-200 px-3 py-2">手当申請ボタン、および確認ダイアログ（あれば）</td></tr>
               </tbody>
             </table>
           </div>

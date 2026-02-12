@@ -128,8 +128,6 @@ export default function Home() {
   const [annualSchedules, setAnnualSchedules] = useState<AnnualSchedule[]>([])
   const [allowanceTypes, setAllowanceTypes] = useState<AllowanceType[]>([])
   
-  const [allowanceStatus, setAllowanceStatus] = useState<'draft' | 'submitted' | 'approved'>('draft')
-  
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedDates, setSelectedDates] = useState<Date[]>([]) // 複数日選択用
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false) // 複数選択モード
@@ -158,16 +156,8 @@ export default function Home() {
   const [customAmount, setCustomAmount] = useState(0)
   const [customDescription, setCustomDescription] = useState('')
 
-  const getLockStatus = (targetDate: Date) => {
-    if (isAdmin) return false
-    const currentViewMonth = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-    const targetMonth = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
-    const isTargetMonth = currentViewMonth === targetMonth
-    // 申請済み（申請中・承認済）の対象月のみ編集不可。翌月10日締め切り制限は廃止
-    return isTargetMonth && allowanceStatus !== 'draft'
-  }
-
-  const isAllowLocked = getLockStatus(selectedDate)
+  // 承認システム廃止のため、編集ロックは常に解除
+  const isAllowLocked = false
 
   useEffect(() => {
     const init = async () => {
@@ -195,7 +185,6 @@ export default function Home() {
         fetchSchoolCalendar(),
         fetchAnnualSchedules(),
         fetchAllowanceTypes(),
-      fetchApplicationStatus(user.id, selectedDate)
       ])
       
       console.log('=== 初期化完了 ===')
@@ -315,8 +304,6 @@ export default function Home() {
           alert('氏名を登録しました！')
       }
   }
-
-  useEffect(() => { if (userId) fetchApplicationStatus(userId, selectedDate) }, [selectedDate, userId])
 
   // 月次集計の自動計算
   useEffect(() => {
@@ -461,39 +448,6 @@ export default function Home() {
     } catch (err) {
       console.error('手当種別取得中の予期しないエラー:', err)
       setAllowanceTypes([])
-    }
-  }
-
-  const fetchApplicationStatus = async (uid: string, date: Date) => {
-    try {
-    const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      const { data, error } = await supabase.from('monthly_applications').select('application_type, status').eq('user_id', uid).eq('year_month', ym)
-      if (error) {
-        // エラーの詳細をログに出力
-        console.error('[申請状態取得エラー詳細]', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          fullError: error,
-          year_month: ym
-        })
-        
-        logSupabaseError('申請状態取得', error)
-        
-        // 404エラーやテーブルが見つからないエラーの場合は警告を表示（ただし、テーブルが存在しない場合は正常な動作として扱う）
-        if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('not found') || error.message?.includes('Could not find')) {
-          console.warn('⚠️ テーブル "monthly_applications" が見つかりません。初回申請の場合は正常です。')
-        }
-        
-        setAllowanceStatus('draft')
-      } else {
-    const allow = data?.find(d => d.application_type === 'allowance')
-    setAllowanceStatus(allow?.status || 'draft')
-      }
-    } catch (err) {
-      console.error('申請状態取得中の予期しないエラー:', err)
-      setAllowanceStatus('draft')
     }
   }
 
@@ -650,11 +604,6 @@ export default function Home() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isAllowLocked) { 
-      alert('手当が申請済みのため、編集できません。')
-      return 
-    }
-    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       console.error('ユーザー情報が取得できません')
@@ -885,63 +834,11 @@ export default function Home() {
   }
 
   const handleDelete = async (id: number, dateStr: string) => { 
-    if (getLockStatus(new Date(dateStr))) { 
-      alert('手当が申請済みのため削除できません')
-      return 
-    }
     if (!window.confirm('削除しますか？')) return
     const { error } = await supabase.from('allowances').delete().eq('id', id)
     if (!error) fetchData(userId)
   }
   
-  const handleSubmit = async () => {
-    // 手当データの確認
-    const monthAllowances = allowances.filter(i => {
-      const d = new Date(i.date)
-      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
-    })
-
-    if (monthAllowances.length === 0) {
-      alert('手当データが登録されていません。先に手当を入力してください。')
-      return
-    }
-
-    const monthTotal = monthAllowances.reduce((sum, i) => sum + i.amount, 0)
-
-    if (!confirm(`${selectedDate.getMonth()+1}月分の手当（${monthAllowances.length}件、合計¥${monthTotal.toLocaleString()}）を確定して申請しますか？\n\n※申請すると、承認されるまで手当の修正ができなくなります。`)) return
-    
-    const ym = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-    
-    console.log('申請データ:', {
-      user_id: userId,
-      user_email: userEmail,
-      year_month: ym,
-      application_type: 'allowance',
-      status: 'submitted',
-      submitted_at: new Date().toISOString()
-    })
-
-    const { data, error } = await supabase.from('monthly_applications').upsert({ 
-      user_id: userId,
-      user_email: userEmail,
-      year_month: ym, 
-      application_type: 'allowance', 
-      status: 'submitted', 
-      submitted_at: new Date().toISOString() 
-    }, { onConflict: 'user_id,year_month,application_type' })
-    
-    if (error) {
-      logSupabaseError('手当申請', error)
-      const errorMessage = handleSupabaseError(error)
-      alert('申請に失敗しました:\n\n' + errorMessage)
-    } else { 
-      console.log('申請成功:', data)
-      await fetchApplicationStatus(userId, selectedDate)
-      alert(`手当を申請しました！\n\n${selectedDate.getMonth()+1}月分（${monthAllowances.length}件、¥${monthTotal.toLocaleString()}）`)
-      setAllowanceStatus('submitted')
-    }
-  }
-
   const handleLogout = async () => { 
     await logout()
   }
@@ -988,11 +885,6 @@ export default function Home() {
       // 単一選択モード
       setSelectedDates([]) // 複数選択をクリア
       
-      // ロックチェック（申請済みの対象月は編集不可）
-      if (getLockStatus(date)) {
-        alert('この日付は申請済みのため編集できません。')
-        return
-      }
       setShowInputModal(true)
     }
   }
@@ -1001,13 +893,6 @@ export default function Home() {
   const handleMultiSelectComplete = () => {
     if (selectedDates.length === 0) {
       alert('日付を選択してください')
-      return
-    }
-    
-    // ロックチェック（選択された日付のいずれかが申請済みで編集不可の場合）
-    const hasLockedDate = selectedDates.some(date => getLockStatus(date))
-    if (hasLockedDate) {
-      alert('選択した日付の中に申請済みのため編集できない日が含まれています。')
       return
     }
     
@@ -1124,13 +1009,6 @@ export default function Home() {
             
             {/* 右側: ボタン類 */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
-              {/* 手当申請ステータス */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {allowanceStatus === 'approved' && <span className="bg-green-100 text-green-700 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold w-full sm:w-auto text-center">💰 承認済</span>}
-                  {allowanceStatus === 'submitted' && <span className="bg-yellow-100 text-yellow-700 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold w-full sm:w-auto text-center">💰 申請中</span>}
-                  {allowanceStatus === 'draft' && !isAllowLocked && <button onClick={handleSubmit} className="text-sm sm:text-base font-bold text-white bg-blue-600 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full hover:bg-blue-700 active:bg-blue-800 shadow-md transition touch-manipulation w-full sm:w-auto">💰 手当申請</button>}
-              </div>
-              
               {/* アカウント（氏名の変更・登録）・複数選択・ログアウト */}
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <div className="flex gap-2">
