@@ -32,6 +32,11 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // /signup は /login へリダイレクト（マジックリンク認証へ移行したため新規登録ページ不要）
+  if (request.nextUrl.pathname.startsWith('/signup')) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
   // ログイン画面とauth関連のパスは認証不要
   if (
     request.nextUrl.pathname.startsWith('/login') ||

@@ -4,6 +4,42 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
+const ALLOWED_DOMAIN = '@haguroko.ed.jp'
+
+/** マジックリンク（OTP）でログインリンクを送信 */
+export async function sendMagicLink(formData: FormData) {
+  const email = (formData.get('email') as string)?.trim()
+
+  if (!email) {
+    return { error: 'メールアドレスを入力してください' }
+  }
+
+  if (!email.toLowerCase().endsWith(ALLOWED_DOMAIN)) {
+    return { error: 'domain', message: '※学校のメールアドレス(@haguroko.ed.jp)のみ利用可能です' }
+  }
+
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
+    },
+  })
+
+  if (error) {
+    console.error('マジックリンク送信エラー:', error.message)
+    return { error: 'send', message: `ログインリンクの送信に失敗しました: ${error.message}` }
+  }
+
+  redirect('/auth/verify')
+}
+
+/** @deprecated パスワードログインは廃止。マジックリンク認証を使用してください */
 export async function login(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
