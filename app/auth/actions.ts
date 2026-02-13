@@ -6,6 +6,14 @@ import { cookies } from 'next/headers'
 
 const ALLOWED_DOMAIN = '@haguroko.ed.jp'
 
+/** Redirect URL はハードコード（環境変数ミスによる古いURLリダイレクト事故を防止） */
+const getSiteUrl = () => {
+  if (process.env.NODE_ENV !== 'production') {
+    return 'http://localhost:3000'
+  }
+  return 'https://allowance-only-app02-magic-link.vercel.app'
+}
+
 /** マジックリンク（OTP）でログインリンクを送信 */
 export async function sendMagicLink(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
@@ -21,13 +29,11 @@ export async function sendMagicLink(formData: FormData) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
     },
   })
 
@@ -268,7 +274,7 @@ export async function resetPassword(formData: FormData) {
   const supabase = createClient(cookieStore)
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/reset-password`,
+    redirectTo: `${getSiteUrl()}/auth/callback?next=/reset-password`,
   })
 
   if (error) {
